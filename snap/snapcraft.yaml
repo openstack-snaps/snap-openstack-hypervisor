@@ -10,7 +10,6 @@ confinement: strict
 environment:
   LC_ALL: C
   PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$SNAP/usr/local/bin:$SNAP/usr/local/sbin:$PATH
-  # OS_PLACEMENT_CONFIG_DIR: $SNAP/etc/nova/
   # Standard library components must have priority in module name resolution: https://storyboard.openstack.org/#!/story/2007806
   PYTHONPATH: $PYTHONPATH:/usr/lib/python3.8:/usr/lib/python3/dist-packages:$SNAP/usr/lib/python3.8:$SNAP/lib/python3.8/site-packages:$SNAP/usr/lib/python3/dist-packages
   PYTHONWARNINGS: ignore
