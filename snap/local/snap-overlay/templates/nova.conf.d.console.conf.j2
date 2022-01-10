@@ -1,0 +1,18 @@
+[DEFAULT]
+web = {{ snap }}/usr/share/spice-html5
+
+[vnc]
+enabled = False
+
+[spice]
+# Proxy configuration (controller only).
+html5proxy_host = 0.0.0.0
+html5proxy_port = 6082
+
+enabled = True
+agent_enabled = True
+html5proxy_base_url = http://{{ control_ip }}:6082/spice_auto.html
+server_listen = {{ compute_ip }}
+server_proxyclient_address = {{ compute_ip }}
+keymap = en-us
+

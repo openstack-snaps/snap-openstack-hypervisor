@@ -1,0 +1,4 @@
+#!/bin/sh
+
+# This wrapper is needed due to https://bugs.launchpad.net/snapd/+bug/1882839
+$SNAP/usr/bin/targetcli restoreconfig clear_existing=True

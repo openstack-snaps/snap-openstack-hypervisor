@@ -1,0 +1,35 @@
+#!/bin/bash
+#
+# Oneshot daemon which creates a networking bridge.
+#
+# Creates br-ex, and sets up an ip address for it. We put this in a
+# oneshot so that the ip address persists after reboot, without
+# needing to add networking entries to the host system. (We want this
+# to work well when we turn off classic confinement.)
+
+set -ex
+
+extcidr=$(snapctl get config.network.ext-cidr)
+controlip=$(snapctl get config.network.control-ip)
+external_bridge_name=$(snapctl get config.network.external-bridge-name)
+physnet_name=$(snapctl get config.network.physnet-name)
+
+# NOTE(dmitriis): this needs to be reworked to allow for OVN + direct exit of traffic to
+# the provider network from a compute node.
+
+# Create an external bridge in the system datapath.
+ovs-vsctl --retry --may-exist add-br $external_bridge_name -- set bridge $external_bridge_name datapath_type=system protocols=OpenFlow13,OpenFlow15
+ovs-vsctl set open . external-ids:ovn-bridge-mappings=$physnet_name:$external_bridge_name
+
+# NOTE: system-id is a randomly-generated UUID (see the --system-id=random option for ovs-ctl)
+# As it is generated automatically, we do not set it here.
+# It can be retrieved by looking at `ovs-vsctl get open_vswitch . external-ids`.
+
+# Configure br-ex
+ip address add $extcidr dev br-ex || :
+ip link set br-ex up || :
+
+iptables-legacy -w -t nat -A POSTROUTING -s $extcidr ! \
+     -d $extcidr -j MASQUERADE || :
+
+exit 0

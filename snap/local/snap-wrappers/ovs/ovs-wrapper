@@ -1,0 +1,20 @@
+#!/bin/bash
+
+set -e
+
+export OVS_LOGDIR=${SNAP_COMMON}/log/openvswitch
+export OVS_RUNDIR=${SNAP_COMMON}/run/openvswitch
+export OVS_SYSCONFDIR=${SNAP_COMMON}/etc
+export OVS_PKGDATADIR=${SNAP}/usr/local/share/openvswitch
+export OVS_BINDIR=${SNAP}/bin
+export OVS_SBINDIR=${SNAP}/sbin
+
+if [ `basename $1` = 'ovs-ctl' ]
+then
+	mkdir -p ${OVS_LOGDIR}
+	mkdir -p ${OVS_RUNDIR}
+	mkdir -p ${OVS_SYSCONFDIR}/openvswitch
+	exec $@ --system-id=random
+else
+	exec $@
+fi

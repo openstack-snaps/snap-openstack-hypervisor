@@ -1,0 +1,30 @@
+[DEFAULT]
+# Set state path to writable directory
+state_path = {{ snap_common }}/lib
+
+resource_query_filters_file = {{ snap }}/etc/cinder/resource_filters.json
+
+# Set volume configuration file storage directory
+volumes_dir = {{ snap_common }}/lib/volumes
+
+my_ip = {{ compute_ip }}
+
+rootwrap_config = {{ snap_common }}/etc/cinder/rootwrap.conf
+
+enabled_backends = {% if setup_loop_based_cinder_lvm_backend %}lvm-loop-based-backend{% endif %}
+
+{% if setup_loop_based_cinder_lvm_backend %}
+[lvm-loop-based-backend]
+volume_driver = cinder.volume.drivers.lvm.LVMVolumeDriver
+iscsi_protocol = iscsi
+target_helper = lioadm
+volume_group = {{ lvm_backend_volume_group }}
+volume_backend_name=lvm-loop-based
+{% endif %}
+
+log_file = {{ snap_common }}/log/cinder.log
+debug = {{ logging_debug }}
+
+[oslo_concurrency]
+# Oslo Concurrency lock path
+lock_path = {{ snap_common }}/lock

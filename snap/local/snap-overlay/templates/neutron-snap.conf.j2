@@ -1,0 +1,26 @@
+[DEFAULT]
+# Set state path to writable directory
+state_path = {{ snap_common }}/lib
+# Log to systemd journal
+use_journal = True
+bind_port = 9686
+
+log_file = {{ snap_common }}/log/neutron.log
+debug = {{ logging_debug }}
+
+
+{% if dns_domain %}
+dns_domain = {{ dns_domain }}
+{% endif %}
+
+[oslo_concurrency]
+# Oslo Concurrency lock path
+lock_path = {{ snap_common }}/lock
+
+[ovn]
+{% if dns_servers %}
+dns_servers= {{ dns_servers }}
+{% endif %}
+
+# TODO(dmitriis): enable once external bridge IP addressing for compute nodes is figured out.
+# enable_distributed_floating_ip = True

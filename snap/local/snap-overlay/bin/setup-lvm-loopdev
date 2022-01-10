@@ -1,0 +1,28 @@
+#!/bin/bash
+
+set -ex
+
+cinder_volumes_vg=`snapctl get config.cinder.lvm-backend-volume-group`
+if [ `snapctl get config.cinder.setup-loop-based-cinder-lvm-backend` = 'true' ]
+then
+	loop_file=$SNAP_COMMON/cinder-lvm.img
+	loop_file_size=`snapctl get config.cinder.loop-device-file-size`
+	# Create a file to hold an LVM PV+VG + LVs if it does not exist.
+	test -f $loop_file || fallocate -l $loop_file_size $loop_file
+	# Unless this file already has an associated loop device, associate a free loop device with it.
+	if [ -z `losetup -j $loop_file` ]
+	then
+		until losetup -f $loop_file
+		do
+			echo 'Waiting until the device cgroup entry is updated, see LP# 1892895'
+			sleep 1
+		done
+	fi
+
+	allocated_loop_dev=`losetup -j $loop_file | cut -d':' -f 1`
+	# Create a PV on the allocated loop device unless there is already one on it.
+	lvmdiskscan -l --config 'devices { filter = [ "a|'$allocated_loop_dev'|", "r|.*|" ] }' | grep -q '1 LVM' || (pvcreate $allocated_loop_dev && vgcreate $cinder_volumes_vg $allocated_loop_dev && exit 0)
+fi
+
+# Activate the logical volumes (relevant on node reboot).
+lvchange -a y $cinder_volumes_vg

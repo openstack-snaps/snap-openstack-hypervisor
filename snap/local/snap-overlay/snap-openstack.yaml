@@ -1,0 +1,133 @@
+setup:
+  dirs:
+    - "{snap_common}/etc/nova/nova.conf.d"
+    - "{snap_common}/etc/neutron/neutron.conf.d"
+    - "{snap_common}/etc/neutron/plugins/ml2"
+    - "{snap_common}/etc/neutron/policy.d"
+    - "{snap_common}/etc/neutron/rootwrap.d"
+    - "{snap_common}/etc/ssl/certs"
+    - "{snap_common}/etc/ssl/private"
+    - "{snap_common}/lib"
+    - "{snap_common}/lib/images"
+    - "{snap_common}/lock"
+    - "{snap_common}/log"
+    - "{snap_common}/run"
+    - "{snap_common}/lib/instances"
+    - "{snap_common}/etc/apparmor.d/libvirt"
+    - "{snap_common}/etc/iscsi"
+    - "{snap_common}/etc/target"
+  templates:
+    neutron-snap.conf.j2: "{snap_common}/etc/neutron/neutron.conf.d/neutron-snap.conf"
+    nova-snap.conf.j2: "{snap_common}/etc/nova/nova.conf.d/nova-snap.conf"
+    cinder-snap.conf.j2: "{snap_common}/etc/cinder/cinder.conf.d/cinder-snap.conf"
+    cinder.database.conf.j2: "{snap_common}/etc/cinder/cinder.conf.d/database.conf"
+    cinder.rabbitmq.conf.j2: "{snap_common}/etc/cinder/cinder.conf.d/rabbitmq.conf"
+    cinder.keystone.conf.j2: "{snap_common}/etc/cinder/cinder.conf.d/keystone.conf"
+    cinder-rootwrap.conf.j2: "{snap_common}/etc/cinder/rootwrap.conf"
+    libvirtd.conf.j2: "{snap_common}/etc/libvirt/libvirtd.conf"
+    qemu.conf.j2: "{snap_common}/etc/libvirt/qemu.conf"
+    virtlogd.conf.j2: "{snap_common}/etc/libvirt/virtlogd.conf"
+    nova.conf.d.keystone.conf.j2: "{snap_common}/etc/nova/nova.conf.d/keystone.conf"
+    nova.conf.d.database.conf.j2: "{snap_common}/etc/nova/nova.conf.d/database.conf"
+    nova.conf.d.rabbitmq.conf.j2: "{snap_common}/etc/nova/nova.conf.d/rabbitmq.conf"
+    nova.conf.d.cinder.conf.j2: "{snap_common}/etc/nova/nova.conf.d/cinder.conf"
+    nova.conf.d.glance.conf.j2: "{snap_common}/etc/nova/nova.conf.d/glance.conf"
+    nova.conf.d.neutron.conf.j2: "{snap_common}/etc/nova/nova.conf.d/neutron.conf"
+    nova.conf.d.placement.conf.j2: "{snap_common}/etc/nova/nova.conf.d/placement.conf"
+    nova.conf.d.console.conf.j2: "{snap_common}/etc/nova/nova.conf.d/console.conf"
+    neutron.keystone.conf.j2: "{snap_common}/etc/neutron/neutron.conf.d/keystone.conf"
+    neutron.nova.conf.j2: "{snap_common}/etc/neutron/neutron.conf.d/nova.conf"
+    neutron.placement.conf.j2: "{snap_common}/etc/neutron/neutron.conf.d/placement.conf"
+    neutron.database.conf.j2: "{snap_common}/etc/neutron/neutron.conf.d/database.conf"
+    neutron.conf.d.rabbitmq.conf.j2: "{snap_common}/etc/neutron/neutron.conf.d/rabbitmq.conf"
+    neutron_ovn_metadata_agent.ini.j2: "{snap_common}/etc/neutron/neutron_ovn_metadata_agent.ini"
+    iscsid.conf.j2: "{snap_common}/etc/iscsi/iscsid.conf"
+    lvm.conf.j2: "{snap_common}/etc/lvm/lvm.conf"
+  chmod:
+    "{snap_common}/etc/ssl": 0755
+    "{snap_common}/etc/ssl/certs": 0755
+    "{snap_common}/etc/ssl/private": 0700
+    "{snap_common}/instances": 0755
+    "{snap_common}/etc/microstack.rc": 0644
+    "{snap_common}/etc/microstack.json": 0644
+  snap-config-keys:
+    is_clustered: 'config.is-clustered'
+    cluster_tls_cert_path: 'config.cluster.tls-cert-path'
+    cluster_tls_key_path: 'config.cluster.tls-key-path'
+    region_name: 'config.keystone.region-name'
+    keystone_password: 'config.credentials.keystone-password'
+    nova_password: 'config.credentials.nova-password'
+    cinder_password: 'config.credentials.cinder-password'
+    neutron_password: 'config.credentials.neutron-password'
+    glance_password: 'config.credentials.glance-password'
+    placement_password: 'config.credentials.placement-password'
+    rabbitmq_password: 'config.credentials.rabbitmq-password'
+    control_ip: 'config.network.control-ip'
+    node_fqdn: 'config.network.node-fqdn'
+    compute_ip: 'config.network.compute-ip'
+    extgateway: 'config.network.ext-gateway'
+    extcidr: 'config.network.ext-cidr'
+    dns_servers: 'config.network.dns-servers'
+    dns_domain: 'config.network.dns-domain'
+    dashboard_allowed_hosts: 'config.network.dashboard-allowed-hosts'
+    dashboard_port: 'config.network.ports.dashboard'
+    mysql_port: 'config.network.ports.mysql'
+    rabbit_port: 'config.network.ports.rabbit'
+    logging_debug: 'config.logging.debug'
+    logging_tag: 'config.logging.logging.tag'
+    logging_host: 'config.logging.host'
+    monitoring_tag: 'config.monitoring.tag'
+    monitoring_ipmi: 'config.monitoring.ipmi'
+    alerting_tag: 'config.alerting.tag'
+    ovn_nb_connection: 'config.network.ovn-nb-connection'
+    ovn_sb_connection: 'config.network.ovn-sb-connection'
+    ovn_metadata_proxy_shared_secret: 'config.credentials.ovn-metadata-proxy-shared-secret'
+    setup_loop_based_cinder_lvm_backend: 'config.cinder.setup-loop-based-cinder-lvm-backend'
+    lvm_backend_volume_group: 'config.cinder.lvm-backend-volume-group'
+    virt_type: 'config.nova.virt-type'
+    cpu_mode: 'config.nova.cpu-mode'
+    cpu_models: 'config.nova.cpu-models'
+    tls_generate_self_signed: 'config.tls.generate-self-signed'
+    tls_cacert_path: 'config.tls.cacert-path'
+    tls_cert_path: 'config.tls.cert-path'
+    tls_key_path: 'config.tls.key-path'
+    tls_compute_cert_path: 'config.tls.compute.cert-path'
+    tls_compute_key_path: 'config.tls.compute.key-path'
+entry_points:
+  nova-compute:
+    binary: "{snap}/bin/nova-compute"
+    config-files:
+      - "{snap}/etc/nova/nova.conf"
+    config-files-override:
+      - "{snap_common}/etc/nova/nova.conf"
+    config-dirs:
+      - "{snap_common}/etc/nova/nova.conf.d"
+  nova-api-metadata:
+    binary: "{snap}/bin/nova-api-metadata"
+    config-files:
+      - "{snap}/etc/nova/nova.conf"
+    config-files-override:
+      - "{snap_common}/etc/nova/nova.conf"
+    config-dirs:
+      - "{snap_common}/etc/nova/nova.conf.d"
+  neutron-ovn-metadata-agent:
+    binary: "{snap}/bin/neutron-ovn-metadata-agent"
+    config-files:
+      - "{snap}/etc/neutron/neutron.conf"
+      - "{snap}/etc/neutron/neutron_ovn_metadata_agent.ini"
+    config-files-override:
+      - "{snap_common}/etc/neutron/neutron.conf"
+      - "{snap_common}/etc/neutron/neutron_ovn_metadata_agent.ini"
+    config-dirs:
+      - "{snap_common}/etc/neutron/neutron.conf.d"
+    templates:
+      neutron_ovn_metadata_agent.ini.j2:
+        "{snap_common}/etc/neutron/neutron_ovn_metadata_agent.ini"
+  cinder-volume:
+    binary: "{snap}/bin/cinder-volume"
+    config-files:
+      - "{snap}/etc/cinder/cinder.conf"
+    config-files-override:
+      - "{snap_common}/etc/cinder/cinder.conf"
+    config-dirs:
+      - "{snap_common}/etc/cinder/cinder.conf.d"

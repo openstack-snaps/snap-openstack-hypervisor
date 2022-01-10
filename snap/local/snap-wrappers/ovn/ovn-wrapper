@@ -1,0 +1,25 @@
+#!/bin/bash
+
+set -e
+
+export OVN_LOGDIR=${SNAP_COMMON}/log/ovn
+export OVN_RUNDIR=${SNAP_COMMON}/run/ovn
+export OVN_SYSCONFDIR=${SNAP_COMMON}/etc
+export OVN_PKGDATADIR=${SNAP}/usr/local/share/ovn
+export OVN_BINDIR=${SNAP}/bin
+export OVN_SBINDIR=${SNAP}/sbin
+
+
+mkdir -p ${OVN_LOGDIR}
+mkdir -p ${OVN_RUNDIR}
+mkdir -p ${OVN_SYSCONFDIR}/ovn
+
+if [ `basename $1` = 'ovn-ctl' -a `snapctl get config.is-clustered` == 'true' ]
+then
+	# TODO: replace this with a secure alternative once TLS is supported.
+	# Create an SB TCP socket to be used by remote ovn-controller and neutron-ovn-metadata
+	# agents.
+	exec $@ --db-sb-create-insecure-remote=yes
+else
+	exec $@
+fi

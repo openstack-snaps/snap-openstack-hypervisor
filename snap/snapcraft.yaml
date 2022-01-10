@@ -1,0 +1,378 @@
+name: microstack-hypervisor
+version: xena
+base: core20
+summary: OpenStack on your laptop.
+description: |
+  Microstack gives you an easy way to develop and test OpenStack
+  workloads on your laptop.
+grade: devel
+confinement: strict
+environment:
+  LC_ALL: C
+  PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$SNAP/usr/local/bin:$SNAP/usr/local/sbin:$PATH
+  # OS_PLACEMENT_CONFIG_DIR: $SNAP/etc/nova/
+  # Standard library components must have priority in module name resolution: https://storyboard.openstack.org/#!/story/2007806
+  PYTHONPATH: $PYTHONPATH:/usr/lib/python3.8:/usr/lib/python3/dist-packages:$SNAP/usr/lib/python3.8:$SNAP/lib/python3.8/site-packages:$SNAP/usr/lib/python3/dist-packages
+  PYTHONWARNINGS: ignore
+  # Needed by a targetcli dependency.
+  GI_TYPELIB_PATH: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/girepository-1.0
+
+architectures:
+  - build-on: amd64
+  - build-on: arm64
+
+system-usernames:
+  snap_daemon: shared
+
+layout:
+  /usr/local/bin:
+    bind: $SNAP/usr/local/bin
+  /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/ceph:
+    bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/ceph
+  /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu:
+    bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu
+  /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pulseaudio:
+    bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pulseaudio
+  /usr/lib/libvirt:
+    bind: $SNAP/usr/lib/libvirt
+  /usr/share/libvirt:
+    bind: $SNAP/usr/share/libvirt
+  /usr/share/qemu:
+    bind: $SNAP/usr/share/qemu
+  # For UEFI Support, bindmount the OVMF and AAVMF directories
+  # appropriately. UEFI support is required for aarch64.
+  /usr/share/OVMF:
+    bind: $SNAP/usr/share/OVMF
+  /usr/share/AAVMF:
+    bind: $SNAP/usr/share/AAVMF
+  # Libvirt has a hard-coded path for the apparmor directory.
+  /etc/apparmor.d:
+    bind: $SNAP_COMMON/etc/apparmor.d
+  # os-brick has a hard-coded location for the iscsi initiator name file.
+  /etc/iscsi:
+    bind: $SNAP_COMMON/etc/iscsi
+  # NOTE: /var/target is there since vhost-scsi module is a holder of target-core-mod (see
+  # the content of /sys/module/target_core_mod/holders). This prevents rtslib from being
+  # able to change the value of /sys/kernel/config/target/dbroot to /etc/target. At the same time,
+  # rtslib saves configuration to /etc/target/saveconfig.json by default. Hence both bind mounts
+  # point to the same target directory.
+  # LIO: the preferred db_root directory documented both in the kernel target code and rtslib.
+  /etc/target:
+    bind: $SNAP_COMMON/etc/target
+  # LIO: the default db_root directory documented both in the kernel target code and rtslib.
+  /var/target:
+    bind: $SNAP_COMMON/etc/target
+  # LIO: Debian targetcli and rtslib carry a patch that changes the preferred dbroot from /etc/target
+  # to /etc/rtslib-fb-target.
+  /etc/rtslib-fb-target:
+    bind: $SNAP_COMMON/etc/target
+  /etc/lvm:
+    bind: $SNAP_COMMON/etc/lvm
+
+apps:
+  # Nova
+  nova-compute:
+    command: bin/snap-openstack launch nova-compute
+    after: [libvirtd]
+    daemon: simple
+    plugs:
+      - network
+      - network-bind
+      - network-control
+      - firewall-control
+      - hardware-observe
+      - kvm
+      - microstack-support
+      # Needs access to block devices so that blockdev --flushbufs works.
+      - block-devices
+  nova-api-metadata:
+    command: bin/snap-openstack launch nova-api-metadata
+    daemon: simple
+    plugs:
+      - network
+      - network-bind
+      - firewall-control
+      - microstack-support
+
+  # Neutron
+  neutron-ovn-metadata-agent:
+    command: bin/snap-openstack launch neutron-ovn-metadata-agent
+    daemon: simple
+    plugs:
+      - network
+      - network-bind
+      - network-control
+      - network-observe
+      - microstack-support
+
+  # Openvswitch
+  ovs-vswitchd:
+    command: bin/ovs-wrapper $SNAP/usr/local/share/openvswitch/scripts/ovs-ctl --no-ovsdb-server --no-monitor start
+    stop-command: bin/ovs-wrapper $SNAP/usr/local/share/openvswitch/scripts/ovs-ctl --no-ovsdb-server stop
+    after: [ovsdb-server]
+    daemon: forking
+    plugs:
+      - network
+      - network-bind
+      - network-control
+      # NETLINK_NETFILTER SOCK_RAW sockets
+      - firewall-control
+      - openvswitch-support
+      - process-control
+      - system-trace
+      - hardware-observe
+      - hugepages-control
+      - microstack-support
+  ovsdb-server:
+    command: bin/ovs-wrapper $SNAP/usr/local/share/openvswitch/scripts/ovs-ctl --no-ovs-vswitchd --no-monitor start
+    stop-command: bin/ovs-wrapper $SNAP/usr/local/share/openvswitch/scripts/ovs-ctl --no-ovs-vswitchd stop
+    daemon: forking
+    plugs:
+      - network
+      - network-bind
+      - network-control
+      - openvswitch-support
+      - process-control
+      - system-trace
+      - microstack-support
+
+  # OVN
+  ovn-controller:
+    command: bin/ovn-wrapper $SNAP/usr/local/share/ovn/scripts/ovn-ctl start_controller
+    stop-command: bin/ovn-wrapper $SNAP/usr/local/share/ovn/scripts/ovn-ctl stop_controller
+    daemon: forking
+    plugs:
+      - network
+      - network-bind
+      - network-control
+      - openvswitch-support
+      - process-control
+      - system-trace
+      - microstack-support
+    after:
+      - ovsdb-server
+      - ovs-vswitchd
+
+  # OVS/OVN cli tools
+  ovn-appctl:
+    command: bin/ovn-wrapper $SNAP/usr/local/bin/ovn-appctl
+    plugs:
+      - network
+      - network-bind
+      - microstack-support
+  ovn-trace:
+    command: bin/ovn-wrapper $SNAP/usr/local/bin/ovn-trace
+    plugs:
+      - network
+      - network-bind
+      - microstack-support
+  ovn-detrace:
+    command: bin/ovn-wrapper $SNAP/usr/local/bin/ovn-detrace
+    plugs:
+      - network
+      - network-bind
+      - microstack-support
+  ovn-nbctl:
+    command: bin/ovn-wrapper $SNAP/usr/local/bin/ovn-nbctl
+    plugs:
+      - network
+      - network-bind
+      - microstack-support
+  ovn-sbctl:
+    command: bin/ovn-wrapper $SNAP/usr/local/bin/ovn-sbctl
+    plugs:
+      - network
+      - network-bind
+      - process-control
+      - microstack-support
+
+  ovs-vsctl:
+    command: bin/ovs-wrapper $SNAP/usr/local/bin/ovs-vsctl
+    plugs:
+      - network
+      - process-control
+      - microstack-support
+  ovs-appctl:
+    command: bin/ovs-wrapper $SNAP/usr/local/bin/ovs-appctl
+    plugs:
+      - network
+      - process-control
+      - microstack-support
+  ovs-ofctl:
+    command: bin/ovs-wrapper $SNAP/usr/local/bin/ovs-ofctl
+    plugs:
+      - network
+      - process-control
+      - microstack-support
+  ovs-dpctl:
+    command: bin/ovs-wrapper $SNAP/usr/local/bin/ovs-dpctl
+    plugs:
+      - network
+      - process-control
+      - microstack-support
+
+  # Libvirt/qemu
+  libvirtd:
+    command: usr/sbin/libvirtd --pid $SNAP_DATA/libvirt.pid --listen
+    daemon: simple
+    plugs:
+      - network
+      - network-bind
+      - network-control
+      - netlink-connector
+      - netlink-audit
+      - libvirt
+      - opengl
+      - raw-usb
+      - hardware-observe
+      - hugepages-control
+      - kvm
+      - kernel-module-observe
+      - process-control
+      - mount-observe
+      - block-devices
+      - microstack-support
+    # Make sure KillMode=process is set in the resulting systemd unit instead of
+    # the default KillMode=control-group to avoid the situation where stopping
+    # libvirtd causes the forced power off scenario for all VMs; it also affects
+    # snap refreshes as libvirtd is restarted in this case.
+    # Removing the snap will still result in VMs being forcefully powered off which
+    # is intended.
+    stop-mode: sigterm
+
+  virtlogd:
+    command: usr/sbin/virtlogd --pid $SNAP_DATA/virtlogd.pid
+    daemon: simple
+    plugs:
+      - network
+      - network-bind
+      - network-control
+      - microstack-support
+  virsh:
+    command: usr/bin/virsh
+    plugs:
+      - network
+      - microstack-support
+
+  cinder-volume:
+    command: bin/snap-openstack launch cinder-volume
+    daemon: simple
+    plugs:
+      - network
+      - network-bind
+      - mount-observe
+      - block-devices
+      # setpriority by LVM tools.
+      - process-control
+      - microstack-support
+    after:
+      - setup-lvm-loopdev
+
+  # Restores LIO kernel target configuration.
+  target:
+    command: bin/target-start
+    stop-command: bin/target-stop
+    daemon: oneshot
+    plugs:
+      - network
+      - network-bind
+      - mount-observe
+      - block-devices
+      - microstack-support
+    after:
+      - setup-lvm-loopdev
+    environment:
+      TARGETCLI_HOME: $SNAP_USER_COMMON/.targetcli
+
+  iscsid:
+    command: bin/iscsid-start
+    daemon: forking
+    plugs:
+      - network
+      - network-bind
+      # NETLINK_ISCSI protocol sockets
+      - network-control
+      - microstack-support
+      - block-devices
+      - process-control
+    after:
+      # Make sure iscsid is stopped before target configuration is cleaned up.
+      - target
+
+  setup-lvm-loopdev:
+    command: bin/setup-lvm-loopdev
+    daemon: oneshot
+    plugs:
+      - network
+      - block-devices
+      - mount-observe
+      # loop device control etc.
+      # LVM tools use setpriority to set it to -18 which is prohibited in the default snapd templates.
+      - process-control
+      - microstack-support
+
+parts:
+  # Add Ubuntu Cloud Archive sources.
+  # Allows us to fetch things such as updated libvirt.
+  uca-sources:
+    plugin: nil
+    build-packages:
+      - ubuntu-cloud-keyring
+      - software-properties-common
+      - dpkg-dev  # We'll need to manipulate sources later.
+      # The two dependencies below are added to avoid errors during
+      # the build step of the openstack-projects part (see LP: #1864589).
+      - python3-dev
+      - python3-distutils
+    override-build: |
+      add-apt-repository -s cloud-archive:xena
+      apt-key update
+      apt update
+      snapcraftctl build
+
+  snap-openstack:
+    plugin: python
+    after:
+      - uca-sources
+    source: https://opendev.org/x/snap.openstack
+    source-type: git
+    build-packages:
+      - gcc
+      - git
+      - libffi-dev
+      - libssl-dev
+      - libxml2-dev
+      - libxslt1-dev
+      - python3-dev
+
+  hypervisor:
+    plugin: nil
+    after:
+      - snap-openstack
+      - ovs-wrapper
+      - ovn-wrapper
+    stage-packages:
+      - nova-compute-kvm
+      - cinder-volume
+      - openvswitch-switch
+      - ovn-host
+      - targetcli-fb
+
+
+  ovs-wrapper:
+    source: ./snap/local/snap-wrappers/ovs
+    plugin: dump
+    organize:
+      ovs-wrapper: bin/ovs-wrapper
+
+  ovn-wrapper:
+    source: ./snap/local/snap-wrappers/ovn
+    plugin: dump
+    organize:
+      ovn-wrapper: bin/ovn-wrapper
+
+  # Templates and other files to be overlaid over the snap.
+  overlay:
+    plugin: dump
+    source: ./snap/local/snap-overlay
+

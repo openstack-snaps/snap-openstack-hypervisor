@@ -1,0 +1,16 @@
+[DEFAULT]
+
+nova_metadata_host = {{ control_ip }}
+
+metadata_proxy_shared_secret = {{ ovn_metadata_proxy_shared_secret }}
+
+[ovs]
+ovsdb_connection = unix:{{ snap_common }}/run/openvswitch/db.sock
+
+[ovn]
+{% if ovn_nb_connection %}
+ovn_nb_connection = {{ ovn_nb_connection }}
+{% endif %}
+{% if ovn_sb_connection %}
+ovn_sb_connection = {{ ovn_sb_connection }}
+{% endif %}
