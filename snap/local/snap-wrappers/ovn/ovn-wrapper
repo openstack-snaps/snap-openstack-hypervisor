@@ -5,9 +5,9 @@ set -e
 export OVN_LOGDIR=${SNAP_COMMON}/log/ovn
 export OVN_RUNDIR=${SNAP_COMMON}/run/ovn
 export OVN_SYSCONFDIR=${SNAP_COMMON}/etc
-export OVN_PKGDATADIR=${SNAP}/usr/local/share/ovn
-export OVN_BINDIR=${SNAP}/bin
-export OVN_SBINDIR=${SNAP}/sbin
+export OVN_PKGDATADIR=${SNAP}/usr/share/ovn
+export OVN_BINDIR=${SNAP}/usr/bin
+export OVN_SBINDIR=${SNAP}/usr/sbin
 
 
 mkdir -p ${OVN_LOGDIR}

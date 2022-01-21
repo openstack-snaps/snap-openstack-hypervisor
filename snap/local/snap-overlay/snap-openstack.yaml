@@ -95,7 +95,7 @@ setup:
     tls_compute_key_path: 'config.tls.compute.key-path'
 entry_points:
   nova-compute:
-    binary: "{snap}/bin/nova-compute"
+    binary: "{snap}/usr/bin/nova-compute"
     config-files:
       - "{snap}/etc/nova/nova.conf"
     config-files-override:
@@ -103,7 +103,7 @@ entry_points:
     config-dirs:
       - "{snap_common}/etc/nova/nova.conf.d"
   nova-api-metadata:
-    binary: "{snap}/bin/nova-api-metadata"
+    binary: "{snap}/usr/bin/nova-api-metadata"
     config-files:
       - "{snap}/etc/nova/nova.conf"
     config-files-override:
@@ -111,7 +111,7 @@ entry_points:
     config-dirs:
       - "{snap_common}/etc/nova/nova.conf.d"
   neutron-ovn-metadata-agent:
-    binary: "{snap}/bin/neutron-ovn-metadata-agent"
+    binary: "{snap}/usr/bin/neutron-ovn-metadata-agent"
     config-files:
       - "{snap}/etc/neutron/neutron.conf"
       - "{snap}/etc/neutron/neutron_ovn_metadata_agent.ini"
@@ -124,7 +124,7 @@ entry_points:
       neutron_ovn_metadata_agent.ini.j2:
         "{snap_common}/etc/neutron/neutron_ovn_metadata_agent.ini"
   cinder-volume:
-    binary: "{snap}/bin/cinder-volume"
+    binary: "{snap}/usr/bin/cinder-volume"
     config-files:
       - "{snap}/etc/cinder/cinder.conf"
     config-files-override:

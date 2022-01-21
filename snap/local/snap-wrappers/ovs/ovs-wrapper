@@ -5,9 +5,9 @@ set -e
 export OVS_LOGDIR=${SNAP_COMMON}/log/openvswitch
 export OVS_RUNDIR=${SNAP_COMMON}/run/openvswitch
 export OVS_SYSCONFDIR=${SNAP_COMMON}/etc
-export OVS_PKGDATADIR=${SNAP}/usr/local/share/openvswitch
-export OVS_BINDIR=${SNAP}/bin
-export OVS_SBINDIR=${SNAP}/sbin
+export OVS_PKGDATADIR=${SNAP}/usr/share/openvswitch
+export OVS_BINDIR=${SNAP}/usr/bin
+export OVS_SBINDIR=${SNAP}/usr/sbin
 
 if [ `basename $1` = 'ovs-ctl' ]
 then
