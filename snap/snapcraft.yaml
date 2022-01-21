@@ -139,8 +139,8 @@ apps:
 
   # OVN
   ovn-controller:
-    command: bin/ovn-wrapper $SNAP/usr/share/ovn/scripts/ovn-ctl start_controller
-    stop-command: bin/ovn-wrapper $SNAP/usr/share/ovn/scripts/ovn-ctl stop_controller
+    command: bin/ovn-wrapper $SNAP/usr/share/ovn/scripts/ovn-ctl start_controller --no-monitor
+    stop-command: bin/ovn-wrapper $SNAP/usr/share/ovn/scripts/ovn-ctl stop_controller --no-monitor --restart
     daemon: forking
     plugs:
       - network
