@@ -365,7 +365,6 @@ parts:
     after:
       - snap-openstack
       - ovs-wrapper
-      - ovn-wrapper
     stage-packages:
       - nova-compute-kvm
       - cinder-volume
@@ -384,12 +383,6 @@ parts:
     plugin: dump
     organize:
       ovs-wrapper: bin/ovs-wrapper
-
-  ovn-wrapper:
-    source: ./snap/local/snap-wrappers/ovn
-    plugin: dump
-    organize:
-      ovn-wrapper: bin/ovn-wrapper
 
   # Templates and other files to be overlaid over the snap.
   overlay:
