@@ -15,6 +15,20 @@ environment:
   PYTHONWARNINGS: ignore
   # Needed by a targetcli dependency.
   GI_TYPELIB_PATH: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/girepository-1.0
+  # OVN runtime configuration
+  OVN_LOGDIR: $SNAP_COMMON/log/ovn
+  OVN_RUNDIR: $SNAP_COMMON/run/ovn
+  OVN_SYSCONFDIR: $SNAP_COMMON/etc
+  OVN_PKGDATADIR: $SNAP/usr/share/ovn
+  OVN_BINDIR: $SNAP/usr/bin
+  OVN_SBINDIR: $SNAP/usr/sbin
+  # OVS runtime configuration
+  OVS_LOGDIR: $SNAP_COMMON/log/openvswitch
+  OVS_RUNDIR: $SNAP_COMMON/run/openvswitch
+  OVS_SYSCONFDIR: $SNAP_COMMON/etc
+  OVS_PKGDATADIR: $SNAP/usr/share/openvswitch
+  OVS_BINDIR: $SNAP/usr/bin
+  OVS_SBINDIR: $SNAP/usr/sbin
 
 architectures:
   - build-on: amd64
@@ -108,8 +122,8 @@ apps:
 
   # Openvswitch
   ovs-vswitchd:
-    command: bin/ovs-wrapper $SNAP/usr/share/openvswitch/scripts/ovs-ctl --no-ovsdb-server --no-monitor start
-    stop-command: bin/ovs-wrapper $SNAP/usr/share/openvswitch/scripts/ovs-ctl --no-ovsdb-server stop
+    command: usr/share/openvswitch/scripts/ovs-ctl --no-ovsdb-server --no-monitor start
+    stop-command: usr/share/openvswitch/scripts/ovs-ctl --no-ovsdb-server stop
     after: [ovsdb-server]
     daemon: forking
     plugs:
@@ -125,8 +139,8 @@ apps:
       - hugepages-control
       - microstack-support
   ovsdb-server:
-    command: bin/ovs-wrapper $SNAP/usr/share/openvswitch/scripts/ovs-ctl --no-ovs-vswitchd --no-monitor start
-    stop-command: bin/ovs-wrapper $SNAP/usr/share/openvswitch/scripts/ovs-ctl --no-ovs-vswitchd stop
+    command: $SNAP/usr/share/openvswitch/scripts/ovs-ctl --no-ovs-vswitchd --no-monitor start
+    stop-command: usr/share/openvswitch/scripts/ovs-ctl --no-ovs-vswitchd stop
     daemon: forking
     plugs:
       - network
@@ -139,8 +153,8 @@ apps:
 
   # OVN
   ovn-controller:
-    command: bin/ovn-wrapper $SNAP/usr/share/ovn/scripts/ovn-ctl start_controller --no-monitor
-    stop-command: bin/ovn-wrapper $SNAP/usr/share/ovn/scripts/ovn-ctl stop_controller --no-monitor --restart
+    command: usr/share/ovn/scripts/ovn-ctl start_controller --no-monitor
+    stop-command: usr/share/ovn/scripts/ovn-ctl stop_controller --no-monitor --restart
     daemon: forking
     plugs:
       - network
@@ -156,31 +170,31 @@ apps:
 
   # OVS/OVN cli tools
   ovn-appctl:
-    command: bin/ovn-wrapper $SNAP/usr/bin/ovn-appctl
+    command: usr/bin/ovn-appctl
     plugs:
       - network
       - network-bind
       - microstack-support
   ovn-trace:
-    command: bin/ovn-wrapper $SNAP/usr/bin/ovn-trace
+    command: usr/bin/ovn-trace
     plugs:
       - network
       - network-bind
       - microstack-support
   ovn-detrace:
-    command: bin/ovn-wrapper $SNAP/usr/bin/ovn-detrace
+    command: usr/bin/ovn-detrace
     plugs:
       - network
       - network-bind
       - microstack-support
   ovn-nbctl:
-    command: bin/ovn-wrapper $SNAP/usr/bin/ovn-nbctl
+    command: usr/bin/ovn-nbctl
     plugs:
       - network
       - network-bind
       - microstack-support
   ovn-sbctl:
-    command: bin/ovn-wrapper $SNAP/usr/bin/ovn-sbctl
+    command: usr/bin/ovn-sbctl
     plugs:
       - network
       - network-bind
@@ -188,25 +202,25 @@ apps:
       - microstack-support
 
   ovs-vsctl:
-    command: bin/ovs-wrapper $SNAP/usr/bin/ovs-vsctl
+    command: usr/bin/ovs-vsctl
     plugs:
       - network
       - process-control
       - microstack-support
   ovs-appctl:
-    command: bin/ovs-wrapper $SNAP/usr/bin/ovs-appctl
+    command: usr/bin/ovs-appctl
     plugs:
       - network
       - process-control
       - microstack-support
   ovs-ofctl:
-    command: bin/ovs-wrapper $SNAP/usr/bin/ovs-ofctl
+    command: usr/bin/ovs-ofctl
     plugs:
       - network
       - process-control
       - microstack-support
   ovs-dpctl:
-    command: bin/ovs-wrapper $SNAP/usr/bin/ovs-dpctl
+    command: usr/bin/ovs-dpctl
     plugs:
       - network
       - process-control
