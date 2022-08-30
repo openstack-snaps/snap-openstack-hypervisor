@@ -122,7 +122,7 @@ apps:
 
   # Openvswitch
   ovs-vswitchd:
-    command: usr/share/openvswitch/scripts/ovs-ctl --no-ovsdb-server --no-monitor start
+    command: bin/ovs-wrapper $SNAP/usr/share/openvswitch/scripts/ovs-ctl --no-ovsdb-server --no-monitor start
     stop-command: usr/share/openvswitch/scripts/ovs-ctl --no-ovsdb-server stop
     after: [ovsdb-server]
     daemon: forking
@@ -139,7 +139,7 @@ apps:
       - hugepages-control
       - microstack-support
   ovsdb-server:
-    command: $SNAP/usr/share/openvswitch/scripts/ovs-ctl --no-ovs-vswitchd --no-monitor start
+    command: usr/share/openvswitch/scripts/ovs-ctl --no-ovs-vswitchd --no-monitor start
     stop-command: usr/share/openvswitch/scripts/ovs-ctl --no-ovs-vswitchd stop
     daemon: forking
     plugs:
@@ -345,12 +345,15 @@ parts:
       apt update
       snapcraftctl pull
 
-  snap-openstack:
+  # OpenStack Python Projects, keyed off Keystone
+  openstack-projects:
     plugin: python
     after:
       - uca-sources
-    source: https://opendev.org/x/snap.openstack
-    source-type: git
+      - libvirt
+    constraints:
+      - https://releases.openstack.org/constraints/upper/ussuri
+    source: http://tarballs.opendev.org/openstack/nova/nova-stable-ussuri.tar.gz
     build-packages:
       - gcc
       - git
@@ -359,21 +362,38 @@ parts:
       - libxml2-dev
       - libxslt1-dev
       - python3-dev
-
-  hypervisor:
-    plugin: nil
-    after:
-      - snap-openstack
-      - ovs-wrapper
+      - libsystemd-dev
     stage-packages:
-      - nova-compute-kvm
-      - cinder-volume
+      - procps  # sysctl utility is used by Neutron agents.
+      - conntrack
+      - coreutils
+      - haproxy
+      - libglib2.0-0
+      - libmagic1
+      - libpython3.8
+      - libssl-dev
+      - libsystemd0
+      - petname
+      - python3
+      - openssh-client
+      - sg3-utils
       - openvswitch-switch
       - ovn-host
-      - targetcli-fb
-      - libvirt-daemon
-      - libvirt-daemon-driver-storage-rbd
-      - python3-distutils
+    python-packages:
+      - wheel
+      - libvirt-python
+      - git+https://opendev.org/x/snap.openstack#egg=snap.openstack
+      - neutron===16.2.0
+      # Pin pip and setuptools to align with other parts
+      - pip==20.0.2
+      - setuptools==44.0.0
+      - systemd-python
+      # For debugging purposes.
+      - rpdb
+    build-environment: &python-build-environment
+      - PIP_COMPILE: 'false'  # disable .pyc generation in pip
+      - PYTHONDONTWRITEBYTECODE: 'false'  # disable .pyc generation by setup.py
+      - SOURCE_DATE_EPOCH: '1591640328'
     organize:
        # Deal with alternatives usage in deb packages.
        usr/lib/openvswitch-switch/ovs-vswitchd: usr/sbin/ovs-vswitchd
@@ -389,3 +409,270 @@ parts:
     plugin: dump
     source: ./snap/local/snap-overlay
 
+  # libvirt/qemu
+  qemu:
+    source: https://git.launchpad.net/ubuntu/+source/qemu
+    source-type: git
+    source-branch: ubuntu/focal-updates
+    plugin: autotools
+    after:
+      - uca-sources
+    build-environment:
+      # Workaround for https://bugs.launchpad.net/snapcraft/+bug/1860766
+      - LD_LIBRARY_PATH: $SNAPCRAFT_PART_INSTALL/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/ceph:$SNAPCRAFT_PART_INSTALL/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pulseaudio:$LD_LIBRARY_PATH
+    stage-packages:
+      - seabios
+      - ipxe-qemu
+      - freeglut3 # provides libglut.so.3
+      - libnuma1
+      - libspice-server1
+      - libasound2
+      - libasyncns0
+      - libbluetooth3
+      - libboost-iostreams1.67.0
+      - libboost-random1.67.0
+      - libboost-system1.67.0
+      - libboost-thread1.67.0
+      - libcaca0
+      - libfdt1
+      - libflac8
+      - libglib2.0-0
+      - libglu1-mesa
+      - libiscsi7
+      - libjpeg-turbo8
+      - libnspr4
+      - libnss3
+      - libogg0
+      - libopus0
+      - libpixman-1-0
+      - libpulse0
+      - librados2
+      - librbd1
+      - libsdl1.2debian
+      - libslang2
+      - libsndfile1
+      - libusb-1.0-0
+      - libusbredirparser1
+      - libvorbis0a
+      - libvorbisenc2
+      - libx11-6
+      - libxi6
+      - libxau6
+      - libxcb1
+      - libxdmcp6
+      - libxext6
+      - libpng16-16
+      - libaio1
+      - libasn1-8-heimdal
+      - libbrotli1
+      - libcurl3-gnutls
+      - libgssapi3-heimdal
+      - libhcrypto4-heimdal
+      - libheimbase1-heimdal
+      - libheimntlm0-heimdal
+      - libhx509-5-heimdal
+      - libkrb5-26-heimdal
+      - libldap-2.4-2
+      - libnghttp2-14
+      - libpsl5
+      - libroken18-heimdal
+      - librtmp1
+      - libssh-4
+      - libwind0-heimdal
+      # UEFI Support, required on arm64
+      - on arm64:
+        - qemu-efi-aarch64
+        - qemu-efi-arm
+      - on amd64:
+        - ovmf
+    build-packages:
+      - acpica-tools
+      - libaio-dev
+      - libasound2-dev
+      - libattr1-dev
+      - libbluetooth-dev
+      - libcap-dev
+      - libcap-ng-dev
+      - libcurl4-gnutls-dev
+      - libfdt-dev
+      - gnutls-dev
+      - libiscsi-dev
+      - libncurses5-dev
+      - try: [libnuma-dev]
+      - libpixman-1-dev
+      - libpulse-dev
+      - librados-dev
+      - librbd-dev
+      - libsasl2-dev
+      - libsdl1.2-dev
+      - try: [libspice-server-dev, libspice-protocol-dev]
+      - libusb-1.0-0-dev
+      - libusbredirparser-dev
+      - linux-libc-dev
+      - uuid-dev
+      - xfslibs-dev
+      - libjpeg-dev
+      - zlib1g-dev
+      - libpng-dev
+      - wget
+      - dpkg-dev
+      - gcc
+    autotools-configure-parameters:
+      - --disable-blobs
+      - --prefix=/usr
+      - --localstatedir=/var/snap/$SNAPCRAFT_PROJECT_NAME/common
+      - --sysconfdir=/var/snap/$SNAPCRAFT_PROJECT_NAME/common
+      - --firmwarepath=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/share/seabios:/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/share/qemu:/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/lib/ipxe/qemu
+      - --disable-user
+      - --disable-linux-user
+      - --disable-bsd-user
+      - --disable-vhost-user
+      - --enable-system
+      - --target-list=x86_64-softmmu,aarch64-softmmu
+      - --disable-xen
+    override-build: |
+      dpkg-source --before-build .
+      snapcraftctl build
+
+  kvm-support:
+    plugin: nil
+    stage-packages:
+    - try: [msr-tools]
+
+  libvirt:
+    source: https://git.launchpad.net/ubuntu/+source/libvirt
+    source-type: git
+    source-branch: ubuntu/focal-updates
+    source-subdir: build-subdir
+    after:
+      - qemu
+      - uca-sources
+    plugin: autotools
+    build-packages:
+    - libxml2-dev
+    - libxml-libxml-perl
+    - libcurl4-gnutls-dev
+    - libncurses5-dev
+    - libreadline-dev
+    - zlib1g-dev
+    - libgcrypt20-dev
+    - libgnutls28-dev
+    - libyajl-dev
+    - libpcap0.8-dev
+    - libaudit-dev
+    - libdevmapper-dev
+    - libpciaccess-dev
+    - libnl-3-dev
+    - libnl-route-3-dev
+    - libxml2-utils
+    - uuid-dev
+    - try: [libnuma-dev]
+    - python-all
+    - python-six
+    - python3-docutils
+    - wget
+    - dpkg-dev
+    - xsltproc
+    - libapparmor-dev
+    - rsync
+    - open-iscsi
+    stage-packages:
+    - dmidecode
+    - dnsmasq
+    - iptables
+    - genisoimage
+    - libxml2
+    - libyajl2
+    - try: [libnuma1]
+    - libcurl3-gnutls
+    - libpcap0.8
+    - libpciaccess0
+    # libvirt uses the pm-is-supported tool.
+    - pm-utils
+    - ebtables
+    - apparmor
+    - libapparmor1
+    autotools-configure-parameters:
+    - --with-qemu
+    - --without-bhyve
+    - --without-xen
+    - --without-openvz
+    - --without-vmware
+    - --without-xenapi
+    - --without-esx
+    - --without-hyperv
+    - --without-lxc
+    - --without-vz
+    - --without-vbox
+    - --without-uml
+    - --without-sasl
+    - --without-storage-iscsi
+    - --without-storage-sheepdog
+    - --without-storage-rbd
+    - --without-storage-lvm
+    - --without-selinux
+    - --with-chrdev-lock-files=/run/lock
+    - --with-storage-iscsi
+    # TODO(dmitriis): re-enable once a workaround is found for subprocess' RPATH handling.
+    # - --with-apparmor
+    - --without-apparmor
+    # NOTE: the install prefix will be different from the actual location on snap installation.
+    - --prefix=/usr
+    - --bindir=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/bin
+    - --sbindir=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/sbin
+    - --libexecdir=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/libexec
+    - --libdir=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/lib
+    - --includedir=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/include
+    - --oldincludedir=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/include
+    - --localstatedir=/var/snap/$SNAPCRAFT_PROJECT_NAME/common
+    - --sysconfdir=/var/snap/$SNAPCRAFT_PROJECT_NAME/common/etc/
+    - DNSMASQ=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/sbin/dnsmasq
+    - DMIDECODE=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/sbin/dmidecode
+    - OVSVSCTL=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/local/bin/ovs-vsctl
+    - IPTABLES_PATH=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/sbin/iptables-legacy
+    - IP6TABLES_PATH=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/sbin/ip6tables-legacy
+    - EBTABLES_PATH=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/sbin/ebtables-legacy
+    build-environment:
+      # Libraries under /snap/$SNAPCRAFT_PROJECT_NAME/current/usr/lib/x86_64-linux-gnu are not added to the
+      # runpath by default. This is OK for parent processes which get LD_LIBRARY_PATH set properly but not
+      # for the child processes they spawn since the environment variables are not passed down to children by default after execve(2).
+      # `readelf -d /snap/microstack/current/usr/libexec/virt-aa-helper` should return something like:
+      # (RUNPATH)            Library runpath: [/snap/microstack/current/usr/lib:/snap/microstack/current/usr/lib/x86_64-linux-gnu:...]
+      - LDFLAGS: '$LDFLAGS -Wl,-rpath=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/lib -Wl,-rpath=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/lib/$SNAPCRAFT_ARCH_TRIPLET -Wl,-rpath=/snap/$SNAPCRAFT_PROJECT_NAME/current/lib -Wl,-rpath=/lib/$SNAPCRAFT_ARCH_TRIPLET -Wl,-rpath=/lib/'
+    override-build: |
+      dpkg-source --before-build .
+      logger `echo -n $PWD`
+      # Prevent libvirt from attempting to run setgroups
+      echo "
+
+      #undef HAVE_SETGROUPS
+      #undef HAVE_SETEUID
+      " >> config-post.h
+
+      # See https://bugs.launchpad.net/snapcraft/+bug/1882255
+      mkdir build-subdir
+      cd build-subdir
+      ../autogen.sh
+
+      echo "#!/bin/sh
+      exit 0
+      " >> autogen.sh
+      chmod +x autogen.sh
+      ln -s ../configure configure
+      cd ..
+      # end of a workaround for LP: #1882255
+      # Build
+      snapcraftctl build
+
+      rsync --remove-source-files -arhvP $SNAPCRAFT_PART_INSTALL/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/* $SNAPCRAFT_PART_INSTALL/usr/
+      rm -rf $SNAPCRAFT_PART_INSTALL/snap/$SNAPCRAFT_PROJECT_NAME/current/usr
+
+      # Copy the generated apparmor template into the install dir
+      # it will be used by libvirt at runtime.
+      mkdir -p $SNAPCRAFT_PART_INSTALL/etc/apparmor.d/libvirt/
+      mkdir -p $SNAPCRAFT_PART_INSTALL/etc/apparmor.d/abstractions
+      cp $SNAPCRAFT_PART_BUILD/src/security/apparmor/TEMPLATE.qemu $SNAPCRAFT_PART_INSTALL/etc/apparmor.d/libvirt/TEMPLATE.qemu
+      cp $SNAPCRAFT_PART_BUILD/src/security/apparmor/libvirt-qemu $SNAPCRAFT_PART_INSTALL/etc/apparmor.d/abstractions/libvirt-qemu
+      # While LXC is not used, the AppArmor code errors out if the template for LXC is not there.
+      cp $SNAPCRAFT_PART_BUILD/src/security/apparmor/TEMPLATE.lxc $SNAPCRAFT_PART_INSTALL/etc/apparmor.d/libvirt/TEMPLATE.lxc
+      cp $SNAPCRAFT_PART_BUILD/src/security/apparmor/libvirt-lxc $SNAPCRAFT_PART_INSTALL/etc/apparmor.d/abstractions/libvirt-lxc
