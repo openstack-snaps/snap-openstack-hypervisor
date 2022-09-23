@@ -3,7 +3,7 @@
 # nova-compute
 # nova-api-os-metadata
 # neutron-ovn-metadata-agent
-name: scratch
+name: microstack-hypervisor
 version: xena
 base: core20
 summary: Partial snap for testing parts
