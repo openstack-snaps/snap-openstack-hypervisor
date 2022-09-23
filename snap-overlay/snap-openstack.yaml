@@ -1,0 +1,20 @@
+setup:
+  dirs:
+    - "{snap_common}/etc/ssl/certs"
+    - "{snap_common}/etc/ssl/private"
+    - "{snap_common}/lib"
+    - "{snap_common}/lock"
+    - "{snap_common}/log"
+    - "{snap_common}/run"
+    - "{snap_common}/lib/instances"
+    - "{snap_common}/etc/apparmor.d/libvirt"
+  templates:
+    libvirtd.conf.j2: "{snap_common}/etc/libvirt/libvirtd.conf"
+    qemu.conf.j2: "{snap_common}/etc/libvirt/qemu.conf"
+    virtlogd.conf.j2: "{snap_common}/etc/libvirt/virtlogd.conf"
+  chmod:
+    "{snap_common}/etc/ssl": 0755
+    "{snap_common}/etc/ssl/certs": 0755
+    "{snap_common}/etc/ssl/private": 0700
+    "{snap_common}/lib/instances": 0755
+entry_points:

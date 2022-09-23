@@ -1,10 +1,13 @@
-name: microstack-hypervisor
+# TODO
+# OVN/OVS
+# nova-compute
+# nova-api-os-metadata
+# neutron-ovn-metadata-agent
+name: scratch
 version: xena
 base: core20
-summary: OpenStack on your laptop.
-description: |
-  Microstack gives you an easy way to develop and test OpenStack
-  workloads on your laptop.
+summary: Partial snap for testing parts
+description: See above
 grade: devel
 confinement: strict
 environment:
@@ -12,9 +15,6 @@ environment:
   PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$SNAP/usr/local/bin:$SNAP/usr/local/sbin:$PATH
   # Standard library components must have priority in module name resolution: https://storyboard.openstack.org/#!/story/2007806
   PYTHONPATH: $PYTHONPATH:/usr/lib/python3.8:/usr/lib/python3/dist-packages:$SNAP/usr/lib/python3.8:$SNAP/lib/python3.8/site-packages:$SNAP/usr/lib/python3/dist-packages
-  PYTHONWARNINGS: ignore
-  # Needed by a targetcli dependency.
-  GI_TYPELIB_PATH: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/girepository-1.0
   # OVN runtime configuration
   OVN_LOGDIR: $SNAP_COMMON/log/ovn
   OVN_RUNDIR: $SNAP_COMMON/run/ovn
@@ -36,6 +36,7 @@ architectures:
 
 system-usernames:
   snap_daemon: shared
+
 
 layout:
   /usr/local/bin:
@@ -63,66 +64,54 @@ layout:
   # Libvirt has a hard-coded path for the apparmor directory.
   /etc/apparmor.d:
     bind: $SNAP_COMMON/etc/apparmor.d
-  # os-brick has a hard-coded location for the iscsi initiator name file.
-  /etc/iscsi:
-    bind: $SNAP_COMMON/etc/iscsi
-  # NOTE: /var/target is there since vhost-scsi module is a holder of target-core-mod (see
-  # the content of /sys/module/target_core_mod/holders). This prevents rtslib from being
-  # able to change the value of /sys/kernel/config/target/dbroot to /etc/target. At the same time,
-  # rtslib saves configuration to /etc/target/saveconfig.json by default. Hence both bind mounts
-  # point to the same target directory.
-  # LIO: the preferred db_root directory documented both in the kernel target code and rtslib.
-  /etc/target:
-    bind: $SNAP_COMMON/etc/target
-  # LIO: the default db_root directory documented both in the kernel target code and rtslib.
-  /var/target:
-    bind: $SNAP_COMMON/etc/target
-  # LIO: Debian targetcli and rtslib carry a patch that changes the preferred dbroot from /etc/target
-  # to /etc/rtslib-fb-target.
-  /etc/rtslib-fb-target:
-    bind: $SNAP_COMMON/etc/target
-  /etc/lvm:
-    bind: $SNAP_COMMON/etc/lvm
 
 apps:
-  # Nova
-  nova-compute:
-    command: bin/snap-openstack launch nova-compute
-    after: [libvirtd]
+  # Libvirt
+  libvirtd:
+    command: usr/sbin/libvirtd --pid $SNAP_DATA/libvirt.pid --listen
     daemon: simple
     plugs:
       - network
       - network-bind
       - network-control
-      - firewall-control
+      - netlink-connector
+      - netlink-audit
+      - libvirt
+      - opengl
+      - raw-usb
       - hardware-observe
+      - hugepages-control
       - kvm
-      - microstack-support
-      # Needs access to block devices so that blockdev --flushbufs works.
+      - kernel-module-observe
+      - process-control
+      - mount-observe
       - block-devices
-  nova-api-metadata:
-    command: bin/snap-openstack launch nova-api-metadata
-    daemon: simple
-    plugs:
-      - network
-      - network-bind
-      - firewall-control
       - microstack-support
+    # Make sure KillMode=process is set in the resulting systemd unit instead of
+    # the default KillMode=control-group to avoid the situation where stopping
+    # libvirtd causes the forced power off scenario for all VMs; it also affects
+    # snap refreshes as libvirtd is restarted in this case.
+    # Removing the snap will still result in VMs being forcefully powered off which
+    # is intended.
+    stop-mode: sigterm
 
-  # Neutron
-  neutron-ovn-metadata-agent:
-    command: bin/snap-openstack launch neutron-ovn-metadata-agent
+  virtlogd:
+    command: usr/sbin/virtlogd --pid $SNAP_DATA/virtlogd.pid
     daemon: simple
     plugs:
       - network
       - network-bind
       - network-control
-      - network-observe
+      - microstack-support
+  virsh:
+    command: usr/bin/virsh
+    plugs:
+      - network
       - microstack-support
 
   # Openvswitch
   ovs-vswitchd:
-    command: bin/ovs-wrapper $SNAP/usr/share/openvswitch/scripts/ovs-ctl --no-ovsdb-server --no-monitor start
+    command: usr/share/openvswitch/scripts/ovs-ctl --no-ovsdb-server --no-monitor start
     stop-command: usr/share/openvswitch/scripts/ovs-ctl --no-ovsdb-server stop
     after: [ovsdb-server]
     daemon: forking
@@ -139,7 +128,7 @@ apps:
       - hugepages-control
       - microstack-support
   ovsdb-server:
-    command: usr/share/openvswitch/scripts/ovs-ctl --no-ovs-vswitchd --no-monitor start
+    command: bin/ovs-wrapper $SNAP/usr/share/openvswitch/scripts/ovs-ctl --no-ovs-vswitchd --no-monitor start
     stop-command: usr/share/openvswitch/scripts/ovs-ctl --no-ovs-vswitchd stop
     daemon: forking
     plugs:
@@ -226,106 +215,6 @@ apps:
       - process-control
       - microstack-support
 
-  # Libvirt/qemu
-  libvirtd:
-    command: usr/sbin/libvirtd --pid $SNAP_DATA/libvirt.pid --listen
-    daemon: simple
-    plugs:
-      - network
-      - network-bind
-      - network-control
-      - netlink-connector
-      - netlink-audit
-      - libvirt
-      - opengl
-      - raw-usb
-      - hardware-observe
-      - hugepages-control
-      - kvm
-      - kernel-module-observe
-      - process-control
-      - mount-observe
-      - block-devices
-      - microstack-support
-    # Make sure KillMode=process is set in the resulting systemd unit instead of
-    # the default KillMode=control-group to avoid the situation where stopping
-    # libvirtd causes the forced power off scenario for all VMs; it also affects
-    # snap refreshes as libvirtd is restarted in this case.
-    # Removing the snap will still result in VMs being forcefully powered off which
-    # is intended.
-    stop-mode: sigterm
-
-  virtlogd:
-    command: usr/sbin/virtlogd --pid $SNAP_DATA/virtlogd.pid
-    daemon: simple
-    plugs:
-      - network
-      - network-bind
-      - network-control
-      - microstack-support
-  virsh:
-    command: usr/bin/virsh
-    plugs:
-      - network
-      - microstack-support
-
-#  cinder-volume:
-#    command: bin/snap-openstack launch cinder-volume
-#    daemon: simple
-#    plugs:
-#      - network
-#      - network-bind
-#      - mount-observe
-#      - block-devices
-#      # setpriority by LVM tools.
-#      - process-control
-#      - microstack-support
-#    after:
-#      - setup-lvm-loopdev
-#
-#  # Restores LIO kernel target configuration.
-#  target:
-#    command: bin/target-start
-#    stop-command: bin/target-stop
-#    daemon: oneshot
-#    plugs:
-#      - network
-#      - network-bind
-#      - mount-observe
-#      - block-devices
-#      - microstack-support
-#    after:
-#      - setup-lvm-loopdev
-#    environment:
-#      TARGETCLI_HOME: $SNAP_USER_COMMON/.targetcli
-#
-#  iscsid:
-#    command: bin/iscsid-start
-#    daemon: forking
-#    plugs:
-#      - network
-#      - network-bind
-#      # NETLINK_ISCSI protocol sockets
-#      - network-control
-#      - microstack-support
-#      - block-devices
-##     - process-control
-#    after:
-#      # Make sure iscsid is stopped before target configuration is cleaned up.
-#      - target
-#
-#  setup-lvm-loopdev:
-#    command: bin/setup-lvm-loopdev
-#    daemon: oneshot
-#    plugs:
-#      - network
-#      - block-devices
-#      - mount-observe
-#      # loop device control etc.
-#      # LVM tools use setpriority to set it to -18 which is prohibited in the default snapd templates.
-#      - process-control
-#      - microstack-support
-
 parts:
   # Add Ubuntu Cloud Archive sources.
   # Allows us to fetch things such as updated libvirt.
@@ -345,75 +234,11 @@ parts:
       apt update
       snapcraftctl pull
 
-  # OpenStack Python Projects, keyed off Keystone
-  openstack-projects:
-    plugin: python
-    after:
-      - uca-sources
-      - libvirt
-    constraints:
-      - https://releases.openstack.org/constraints/upper/ussuri
-    source: http://tarballs.opendev.org/openstack/nova/nova-stable-ussuri.tar.gz
-    build-packages:
-      - gcc
-      - git
-      - libffi-dev
-      - libssl-dev
-      - libxml2-dev
-      - libxslt1-dev
-      - python3-dev
-      - libsystemd-dev
-    stage-packages:
-      - procps  # sysctl utility is used by Neutron agents.
-      - conntrack
-      - coreutils
-      - haproxy
-      - libglib2.0-0
-      - libmagic1
-      - libpython3.8
-      - libssl-dev
-      - libsystemd0
-      - petname
-      - python3
-      - openssh-client
-      - sg3-utils
-      - openvswitch-switch
-      - ovn-host
-    python-packages:
-      - wheel
-      - libvirt-python
-      - git+https://opendev.org/x/snap.openstack#egg=snap.openstack
-      - neutron===16.2.0
-      # Pin pip and setuptools to align with other parts
-      - pip==20.0.2
-      - setuptools==44.0.0
-      - systemd-python
-      # For debugging purposes.
-      - rpdb
-    build-environment: &python-build-environment
-      - PIP_COMPILE: 'false'  # disable .pyc generation in pip
-      - PYTHONDONTWRITEBYTECODE: 'false'  # disable .pyc generation by setup.py
-      - SOURCE_DATE_EPOCH: '1591640328'
-    organize:
-       # Deal with alternatives usage in deb packages.
-       usr/lib/openvswitch-switch/ovs-vswitchd: usr/sbin/ovs-vswitchd
-
-  ovs-wrapper:
-    source: ./snap/local/snap-wrappers/ovs
-    plugin: dump
-    organize:
-      ovs-wrapper: bin/ovs-wrapper
-
-  # Templates and other files to be overlaid over the snap.
-  overlay:
-    plugin: dump
-    source: ./snap/local/snap-overlay
-
-  # libvirt/qemu
   qemu:
     source: https://git.launchpad.net/ubuntu/+source/qemu
     source-type: git
     source-branch: ubuntu/focal-updates
+    source-depth: 1
     plugin: autotools
     after:
       - uca-sources
@@ -429,10 +254,10 @@ parts:
       - libasound2
       - libasyncns0
       - libbluetooth3
-      - libboost-iostreams1.67.0
-      - libboost-random1.67.0
-      - libboost-system1.67.0
-      - libboost-thread1.67.0
+      - libboost-iostreams1.71.0
+      - libboost-random1.71.0
+      - libboost-system1.71.0
+      - libboost-thread1.71.0
       - libcaca0
       - libfdt1
       - libflac8
@@ -544,6 +369,7 @@ parts:
     source-type: git
     source-branch: ubuntu/focal-updates
     source-subdir: build-subdir
+    source-depth: 1
     after:
       - qemu
       - uca-sources
@@ -569,13 +395,14 @@ parts:
     - try: [libnuma-dev]
     - python-all
     - python-six
-    - python3-docutils
     - wget
     - dpkg-dev
     - xsltproc
     - libapparmor-dev
     - rsync
     - open-iscsi
+    - python3-docutils
+    - gettext
     stage-packages:
     - dmidecode
     - dnsmasq
@@ -606,11 +433,11 @@ parts:
     - --without-vbox
     - --without-uml
     - --without-sasl
-    - --without-storage-iscsi
     - --without-storage-sheepdog
     - --without-storage-rbd
     - --without-storage-lvm
     - --without-selinux
+    - --without-docs
     - --with-chrdev-lock-files=/run/lock
     - --with-storage-iscsi
     # TODO(dmitriis): re-enable once a workaround is found for subprocess' RPATH handling.
@@ -676,3 +503,60 @@ parts:
       # While LXC is not used, the AppArmor code errors out if the template for LXC is not there.
       cp $SNAPCRAFT_PART_BUILD/src/security/apparmor/TEMPLATE.lxc $SNAPCRAFT_PART_INSTALL/etc/apparmor.d/libvirt/TEMPLATE.lxc
       cp $SNAPCRAFT_PART_BUILD/src/security/apparmor/libvirt-lxc $SNAPCRAFT_PART_INSTALL/etc/apparmor.d/abstractions/libvirt-lxc
+
+  # Templates and other files to be overlaid over the snap.
+  overlay:
+    plugin: dump
+    source: snap-overlay
+
+  openstack:
+    plugin: python
+    constraints:
+      - https://releases.openstack.org/constraints/upper/xena
+    source: http://tarballs.opendev.org/openstack/nova/nova-stable-xena.tar.gz
+    build-environment: &python-build-environment
+      - PIP_COMPILE: 'false'  # disable .pyc generation in pip
+      - PYTHONDONTWRITEBYTECODE: 'false'  # disable .pyc generation by setup.py
+      - SOURCE_DATE_EPOCH: '1591640328'
+    after:
+      - uca-sources
+      - libvirt
+    build-packages:
+      - gcc
+      - git
+      - libffi-dev
+      - libssl-dev
+      - libxml2-dev
+      - libxslt1-dev
+      - python3-dev
+      - libsystemd-dev
+    stage-packages:
+      - rsync
+      - python3
+    python-packages:
+      - git+https://opendev.org/x/snap.openstack#egg=snap.openstack
+      # Pin pip and setuptools to align with other parts
+      - pip==20.0.2
+      - setuptools==44.0.0
+
+  networking:
+    plugin: nil
+    after:
+      - uca-sources
+    stage-packages:
+      - openvswitch-switch
+      - openvswitch-switch-dpdk
+      - ovn-host
+    organize:
+       # Deal with alternatives usage in deb packages.
+       usr/lib/openvswitch-switch-dpdk/ovs-vswitchd-dpdk: usr/sbin/ovs-vswitchd
+
+  ovs-wrapper:
+    source: ./snap/local/snap-wrappers/ovs
+    plugin: dump
+    organize:
+      ovs-wrapper: bin/ovs-wrapper
+
+hooks:
+  install:
+    plugs: [ network, microstack-support]
