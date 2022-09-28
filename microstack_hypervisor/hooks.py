@@ -153,9 +153,10 @@ def _context_compat(context: Dict[str, Any]) -> Dict[str, Any]:
     """
     clean_context = {}
     for key, value in context.items():
+        key = key.replace("-", "_")
         if not isinstance(value, Dict):
-            clean_context[key.replace("-", "_")] = value
-        if isinstance(value, Dict):
+            clean_context[key] = value
+        else:
             clean_context[key] = _context_compat(value)
     return clean_context
 
