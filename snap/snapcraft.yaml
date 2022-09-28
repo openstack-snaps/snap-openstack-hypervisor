@@ -14,7 +14,7 @@ environment:
   LC_ALL: C
   PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$SNAP/usr/local/bin:$SNAP/usr/local/sbin:$PATH
   # Standard library components must have priority in module name resolution: https://storyboard.openstack.org/#!/story/2007806
-  PYTHONPATH: $PYTHONPATH:/usr/lib/python3.8:/usr/lib/python3/dist-packages:$SNAP/usr/lib/python3.8:$SNAP/lib/python3.8/site-packages:$SNAP/usr/lib/python3/dist-packages
+  PYTHONPATH: $PYTHONPATH:$SNAP/usr/lib/python3.8:$SNAP/lib/python3.8/site-packages:$SNAP/usr/lib/python3/dist-packages:$SNAP/usr/lib/python3.8/site-packages
   # OVN runtime configuration
   OVN_LOGDIR: $SNAP_COMMON/log/ovn
   OVN_RUNDIR: $SNAP_COMMON/run/ovn
@@ -238,10 +238,6 @@ parts:
       - ubuntu-cloud-keyring
       - software-properties-common
       - dpkg-dev  # We'll need to manipulate sources later.
-      # The two dependencies below are added to avoid errors during
-      # the build step of the openstack-projects part (see LP: #1864589).
-      - python3-dev
-      - python3-distutils
     override-pull: |
       add-apt-repository -s cloud-archive:xena
       apt-key update
@@ -547,6 +543,11 @@ parts:
       - uca-sources
     stage-packages:
       - python3-nova
+      - python3-neutron
+      - python3-os-vif
+      - python3-os-brick
+      - python3-distutils
+      - python3-systemd
     organize:
       usr/share/libvirt: usr/share/libvirt-nova
 

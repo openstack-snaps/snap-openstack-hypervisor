@@ -76,6 +76,8 @@ COMMON_DIRS = [
     Path("log/libvirt/qemu"),
     Path("log/ovn"),
     Path("log/openvswitch"),
+    Path("log/nova"),
+    Path("log/neutron"),
     # run
     Path("run/ovn"),
     Path("run/openvswitch"),
@@ -86,9 +88,22 @@ COMMON_DIRS = [
 DATA_DIRS = [
     Path("lib/libvirt/images"),
     Path("lib/ovn"),
-    Path("lib/nova"),
+    Path("lib/nova/instances"),
     Path("lib/neutron"),
 ]
+
+
+def _mkdirs(snap: Snap) -> None:
+    """Ensure directories requires for operator of snap exist.
+    
+    :param snap: the snap instance
+    :type snap: Snap
+    :return: None
+    """
+    for dir in COMMON_DIRS:
+        os.makedirs(snap.paths.common / dir, exist_ok=True)
+    for dir in DATA_DIRS:
+        os.makedirs(snap.paths.data / dir, exist_ok=True)
 
 
 def install(snap: Snap) -> None:
@@ -103,10 +118,6 @@ def install(snap: Snap) -> None:
     """
     setup_logging(snap.paths.common / "hooks.log")
     logging.info("Running install hook")
-    for dir in COMMON_DIRS:
-        os.makedirs(snap.paths.common / dir, exist_ok=True)
-    for dir in DATA_DIRS:
-        os.makedirs(snap.paths.data / dir, exist_ok=True)
     logging.info(f"Setting default config: {DEFAULT_CONFIG}")
     snap.config.set(DEFAULT_CONFIG)
 
@@ -142,7 +153,7 @@ def _context_compat(context: Dict[str, Any]) -> Dict[str, Any]:
     """
     clean_context = {}
     for key, value in context.items():
-        if isinstance(value, str):
+        if not isinstance(value, Dict):
             clean_context[key.replace("-", "_")] = value
         if isinstance(value, Dict):
             clean_context[key] = _context_compat(value)
@@ -171,6 +182,8 @@ def configure(snap: Snap) -> None:
     """
     setup_logging(snap.paths.common / "hooks.log")
     logging.info("Running configure hook")
+
+    _mkdirs(snap)
 
     context = snap.config.get_options(
         "compute",
