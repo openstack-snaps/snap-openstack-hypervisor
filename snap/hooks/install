@@ -1,8 +1,4 @@
 #!/bin/bash
-set -ex
-
-mkdir -p $SNAP_DATA/lib/libvirt/images
-mkdir -p ${SNAP_COMMON}/log/libvirt/qemu
 
 # NOTE(dmitriis): there is currently no way to make sure this directory gets
 # recreated on reboot which would normally be done via systemd-tmpfiles.
@@ -13,17 +9,8 @@ mkdir -p /run/lock/snap.$SNAP_INSTANCE_NAME
 # Also copy other abstractions that are used by this template.
 rsync -rh $SNAP/etc/apparmor.d $SNAP_COMMON/etc
 
-# ----- OVN/OVS -----
-# Lay out directories used for OVN configuration and persistent data
-for dir in etc/openvswitch etc/ovn var/lib/ovn var/log/ovn var/run/ovn; do
-    if [ ! -d $SNAP_COMMON/$dir ]; then
-        mkdir -p $SNAP_COMMON/$dir
-    fi
-done
-
 # Prepare access to the hosting systems Open vSwitch instance
 # NOTE end user must execute `snap connect ovn:openvswitch` for this to work
 ln -s /var/run/openvswitch $SNAP_COMMON/var/run/openvswitch
-# ----- END OVN -----
 
-snap-openstack setup  # Sets up templates for the first time.
+exec "${SNAP}/bin/snap-helpers-hook" "install"

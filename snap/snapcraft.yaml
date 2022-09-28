@@ -37,7 +37,6 @@ architectures:
 system-usernames:
   snap_daemon: shared
 
-
 layout:
   /usr/local/bin:
     bind: $SNAP/usr/local/bin
@@ -215,6 +214,21 @@ apps:
       - process-control
       - microstack-support
 
+  nova-compute:
+    command: 'bin/nova-compute-service'
+    after: [libvirtd]
+    daemon: simple
+    plugs:
+      - network
+      - network-bind
+      - network-control
+      - firewall-control
+      - hardware-observe
+      - kvm
+      - microstack-support
+      # Needs access to block devices so that blockdev --flushbufs works.
+      - block-devices
+
 parts:
   # Add Ubuntu Cloud Archive sources.
   # Allows us to fetch things such as updated libvirt.
@@ -320,7 +334,6 @@ parts:
       - libcap-ng-dev
       - libcurl4-gnutls-dev
       - libfdt-dev
-      - gnutls-dev
       - libiscsi-dev
       - libncurses5-dev
       - try: [libnuma-dev]
@@ -504,40 +517,11 @@ parts:
       cp $SNAPCRAFT_PART_BUILD/src/security/apparmor/TEMPLATE.lxc $SNAPCRAFT_PART_INSTALL/etc/apparmor.d/libvirt/TEMPLATE.lxc
       cp $SNAPCRAFT_PART_BUILD/src/security/apparmor/libvirt-lxc $SNAPCRAFT_PART_INSTALL/etc/apparmor.d/abstractions/libvirt-lxc
 
-  # Templates and other files to be overlaid over the snap.
-  overlay:
+  templates:
+    source: templates/
     plugin: dump
-    source: snap-overlay
-
-  openstack:
-    plugin: python
-    constraints:
-      - https://releases.openstack.org/constraints/upper/xena
-    source: http://tarballs.opendev.org/openstack/nova/nova-stable-xena.tar.gz
-    build-environment: &python-build-environment
-      - PIP_COMPILE: 'false'  # disable .pyc generation in pip
-      - PYTHONDONTWRITEBYTECODE: 'false'  # disable .pyc generation by setup.py
-      - SOURCE_DATE_EPOCH: '1591640328'
-    after:
-      - uca-sources
-      - libvirt
-    build-packages:
-      - gcc
-      - git
-      - libffi-dev
-      - libssl-dev
-      - libxml2-dev
-      - libxslt1-dev
-      - python3-dev
-      - libsystemd-dev
-    stage-packages:
-      - rsync
-      - python3
-    python-packages:
-      - git+https://opendev.org/x/snap.openstack#egg=snap.openstack
-      # Pin pip and setuptools to align with other parts
-      - pip==20.0.2
-      - setuptools==44.0.0
+    organize:
+      '*': templates/  
 
   networking:
     plugin: nil
@@ -557,6 +541,27 @@ parts:
     organize:
       ovs-wrapper: bin/ovs-wrapper
 
+  nova:
+    plugin: nil
+    after:
+      - uca-sources
+    stage-packages:
+      - python3-nova
+    organize:
+      usr/share/libvirt: usr/share/libvirt-nova
+
+  snap-hooks:
+    plugin: python
+    build-environment:
+      # Workaround to ensure rebuild of snap work
+      - PATH: /usr/bin:$PATH
+      - PYTHONPATH: ''    
+    source: .
+    after:
+      - nova
+
 hooks:
   install:
+    plugs: [ network, microstack-support]
+  configure:
     plugs: [ network, microstack-support]
