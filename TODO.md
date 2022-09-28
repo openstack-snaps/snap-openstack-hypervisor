@@ -12,5 +12,4 @@
 # Tech Debt
 
 - Unit tests for all hooks and entrypoints
-
-
+- README (config options, usage)
