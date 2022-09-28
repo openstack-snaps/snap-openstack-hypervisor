@@ -95,7 +95,7 @@ DATA_DIRS = [
 
 def _mkdirs(snap: Snap) -> None:
     """Ensure directories requires for operator of snap exist.
-    
+
     :param snap: the snap instance
     :type snap: Snap
     :return: None

@@ -127,7 +127,7 @@ apps:
       - hugepages-control
       - microstack-support
   ovsdb-server:
-    command: bin/ovs-wrapper $SNAP/usr/share/openvswitch/scripts/ovs-ctl --no-ovs-vswitchd --no-monitor start
+    command: "bin/ovsdb-server-service"
     stop-command: usr/share/openvswitch/scripts/ovs-ctl --no-ovs-vswitchd stop
     daemon: forking
     plugs:
@@ -530,12 +530,6 @@ parts:
     organize:
        # Deal with alternatives usage in deb packages.
        usr/lib/openvswitch-switch-dpdk/ovs-vswitchd-dpdk: usr/sbin/ovs-vswitchd
-
-  ovs-wrapper:
-    source: ./snap/local/snap-wrappers/ovs
-    plugin: dump
-    organize:
-      ovs-wrapper: bin/ovs-wrapper
 
   nova:
     plugin: nil
