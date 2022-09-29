@@ -239,6 +239,15 @@ apps:
       - network-observe
       - microstack-support
 
+  nova-api-metadata:
+    command: 'bin/nova-api-metadata-service'
+    daemon: simple
+    plugs:
+      - network
+      - network-bind
+      - firewall-control
+      - microstack-support
+
 parts:
   # Add Ubuntu Cloud Archive sources.
   # Allows us to fetch things such as updated libvirt.

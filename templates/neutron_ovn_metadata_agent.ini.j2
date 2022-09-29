@@ -1,3 +1,6 @@
+# THIS FILE IS MANAGED BY THE SNAP - CHANGES WILL BE OVERWRITTEN
+# Use $SNAP_COMMON/etc/neutron/neutron.conf.d for deployment specific
+# configuration
 [DEFAULT]
 nova_metadata_host = {{ node.ip_address }}
 metadata_proxy_shared_secret = {{ credentials.ovn_metadata_proxy_shared_secret }}

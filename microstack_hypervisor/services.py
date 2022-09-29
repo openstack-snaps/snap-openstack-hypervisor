@@ -88,6 +88,27 @@ def nova_compute():
     sys.exit(exit_code)
 
 
+class NovaAPIMetadataService(OpenStackService):
+    """A python service object used to run the nova-api-metadata daemon."""
+
+    conf_files = [
+        Path("etc/nova/nova.conf"),
+    ]
+    conf_dirs = [
+        Path("etc/nova/nova.conf.d"),
+    ]
+
+    executable = Path("usr/bin/nova-api-metadata")
+
+
+def nova_api_metadata():
+    """Main entry point for nova-compute."""
+    service = NovaAPIMetadataService()
+    exit_code = service.run(Snap())
+    sys.exit(exit_code)
+
+
+
 class NeutronOVNMetadataAgentService(OpenStackService):
     """A python service object used to run the neutron-ovn-metadata-agent daemon."""
 

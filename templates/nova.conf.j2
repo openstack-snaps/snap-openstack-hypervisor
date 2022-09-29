@@ -10,17 +10,18 @@ state_path = {{ snap_data }}/lib/nova
 
 # Log to systemd journal
 use_journal = True
+debug = {{ logging.debug }}
 
 # Set a hostname to be an FQDN to avoid issues with port binding for
 # which a hostname of a Nova node must match a hostname of an OVN chassis.
 host = {{ node.fqdn }}
 my_ip = {{ node.ip_address }}
 
-log_file = {{ snap_common }}/log/nova/nova-compute.log
-debug = {{ logging.debug }}
-
 # AMQP connection to RabbitMQ
 transport_url = {{ rabbitmq.url }}
+
+# Fix the amount of metadata workers to a sane default
+metadata_workers = 4
 
 [workarounds]
 disable_rootwrap = True
