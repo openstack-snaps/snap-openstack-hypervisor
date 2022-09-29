@@ -1,6 +1,6 @@
 # Configuration Options
 
-- OVN NB/SB connection URL + TLS certificate configuration
+- TLS certificate configuration
 
 # Internals
 
