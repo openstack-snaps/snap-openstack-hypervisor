@@ -233,7 +233,9 @@ def _configure_ovn(snap: Snap) -> None:
         # Fallback to general node IP
         ovn_encap_ip = snap.config.get("node.ip-address")
     system_id = snap.config.get("node.fqdn")
-    sb_conn = snap.config.get("network.ovn-sb-connection")
+    if not ovn_encap_ip and system_id:
+        logging.info("OVN IP and System ID not configured, skipping.")
+        return
     logging.info(
         "Configuring Open vSwitch geneve tunnels and system id. "
         f"ovn-encap-ip = {ovn_encap_ip}, system-id = {system_id}"
@@ -241,6 +243,7 @@ def _configure_ovn(snap: Snap) -> None:
     subprocess.check_call(
         [
             "ovs-vsctl",
+            "--retry",
             "set",
             "open",
             ".",
@@ -257,7 +260,13 @@ def _configure_ovn(snap: Snap) -> None:
             f"external-ids:system-id={system_id}",
         ]
     )
-    subprocess.check_call(["ovs-vsctl", "set", "open", ".", f"external-ids:ovn-remote={sb_conn}"])
+    sb_conn = snap.config.get("network.ovn-sb-connection")
+    if not sb_conn:
+        logging.info("OVN SB connection URL not configured, skipping.")
+        return
+    subprocess.check_call(
+        ["ovs-vsctl", "--retry", "set", "open", ".", f"external-ids:ovn-remote={sb_conn}"]
+    )
 
 
 def configure(snap: Snap) -> None:
