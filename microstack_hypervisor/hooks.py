@@ -220,7 +220,7 @@ def _update_default_config(snap: Snap) -> None:
             snap.config.set({option: default})
 
 
-def _configure_ovn(snap: Snap) -> None:
+def _configure_ovn_base(snap: Snap) -> None:
     """Configure OVS/OVN.
 
     :param snap: the snap reference
@@ -266,6 +266,48 @@ def _configure_ovn(snap: Snap) -> None:
         return
     subprocess.check_call(
         ["ovs-vsctl", "--retry", "set", "open", ".", f"external-ids:ovn-remote={sb_conn}"]
+    )
+
+
+def _configure_ovn_external_networking(snap: Snap) -> None:
+    """Configure OVS/OVN external networking
+
+    :param snap: the snap reference
+    :type snap: Snap
+    :return: None
+    """
+    # TODO:
+    # Deal with multiple external networks.
+    # Deal with wiring of hardware port to each bridge.
+    external_bridge = snap.config.get("network.external-bridge")
+    physnet_name = snap.config.get("network.physnet-name")
+    if not external_bridge and physnet_name:
+        logging.info("OVN external networking not configured, skipping.")
+        return
+    subprocess.check_call(
+        [
+            "ovs-vsctl",
+            "--retry",
+            "--may-exist",
+            "add-br",
+            external_bridge,
+            "--",
+            "set",
+            "bridge",
+            external_bridge,
+            "datapath_type=system",
+            "protocols=OpenFlow13,OpenFlow15",
+        ]
+    )
+    subprocess.check_call(
+        [
+            "ovs-vsctl",
+            "--retry",
+            "set",
+            "open",
+            ".",
+            f"external-ids:ovn-bridge-mappings={physnet_name}:{external_bridge}",
+        ]
     )
 
 
@@ -322,4 +364,5 @@ def configure(snap: Snap) -> None:
             )
             raise
 
-    _configure_ovn(snap)
+    _configure_ovn_base(snap)
+    _configure_ovn_external_networking(snap)
