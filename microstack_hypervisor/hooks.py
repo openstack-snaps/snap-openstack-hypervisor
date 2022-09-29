@@ -270,7 +270,7 @@ def _configure_ovn_base(snap: Snap) -> None:
 
 
 def _configure_ovn_external_networking(snap: Snap) -> None:
-    """Configure OVS/OVN external networking
+    """Configure OVS/OVN external networking.
 
     :param snap: the snap reference
     :type snap: Snap

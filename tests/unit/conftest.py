@@ -21,6 +21,7 @@ from snaphelpers import Snap, SnapConfig
 @pytest.fixture
 def snap_env():
     """Environment variables defined in the snap.
+
     This is primarily used to setup the snaphelpers bit.
     """
     yield {
@@ -38,7 +39,6 @@ def snap_env():
 
 @pytest.fixture
 def snap(snap_env):
-    """"""
     snap = Snap(environ=snap_env)
     snap.config = MagicMock(SnapConfig)
     yield snap
