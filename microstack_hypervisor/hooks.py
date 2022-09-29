@@ -17,6 +17,7 @@ import os
 import secrets
 import socket
 import string
+import subprocess
 from pathlib import Path
 from typing import Any, Dict
 
@@ -52,6 +53,7 @@ DEFAULT_CONFIG = {
     "network.dns-servers": "8.8.8.8",
     "network.ovn-nb-connection": "tcp:127.0.0.1:6642",
     "network.ovn-sb-connection": "tcp:127.0.0.1:6642",
+    "network.ip-address": UNSET,
     # General
     "logging.debug": False,
     "node.fqdn": socket.getfqdn(),
@@ -59,9 +61,7 @@ DEFAULT_CONFIG = {
     # TLS
 }
 
-SECRETS = [
-    "credentials.ovn-metadata-proxy-shared-secret"
-]
+SECRETS = ["credentials.ovn-metadata-proxy-shared-secret"]
 
 DEFAULT_SECRET_LENGTH = 32
 
@@ -206,6 +206,60 @@ TEMPLATES = {
 }
 
 
+def _update_default_config(snap: Snap) -> None:
+    """Add any missing default configuration keys.
+
+    :param snap: the snap reference
+    :type snap: Snap
+    :return: None
+    """
+    option_keys = set([k.split(".")[0] for k in DEFAULT_CONFIG.keys()])
+    current_options = snap.config.get_options(*option_keys)
+    for option, default in DEFAULT_CONFIG.items():
+        if option not in current_options:
+            snap.config.set({option: default})
+
+
+def _configure_ovn(snap: Snap) -> None:
+    """Configure OVS/OVN.
+
+    :param snap: the snap reference
+    :type snap: Snap
+    :return: None
+    """
+    # Check for network specific IP address
+    ovn_encap_ip = snap.config.get("network.ip-address")
+    if not ovn_encap_ip:
+        # Fallback to general node IP
+        ovn_encap_ip = snap.config.get("node.ip-address")
+    system_id = snap.config.get("node.fqdn")
+    sb_conn = snap.config.get("network.ovn-sb-connection")
+    logging.info(
+        "Configuring Open vSwitch geneve tunnels and system id. "
+        f"ovn-encap-ip = {ovn_encap_ip}, system-id = {system_id}"
+    )
+    subprocess.check_call(
+        [
+            "ovs-vsctl",
+            "set",
+            "open",
+            ".",
+            "external-ids:ovn-encap-type=geneve",
+            "--",
+            "set",
+            "open",
+            ".",
+            f"external-ids:ovn-encap-ip={ovn_encap_ip}",
+            "--",
+            "set",
+            "open",
+            ".",
+            f"external-ids:system-id={system_id}",
+        ]
+    )
+    subprocess.check_call(["ovs-vsctl", "set", "open", ".", f"external-ids:ovn-remote={sb_conn}"])
+
+
 def configure(snap: Snap) -> None:
     """Runs the `configure` hook for the snap.
 
@@ -221,6 +275,7 @@ def configure(snap: Snap) -> None:
     logging.info("Running configure hook")
 
     _mkdirs(snap)
+    _update_default_config(snap)
     _setup_secrets(snap)
 
     context = snap.config.get_options(
@@ -257,3 +312,5 @@ def configure(snap: Snap) -> None:
                 "An error occurred when attempting to render the mysql configuration file."
             )
             raise
+
+    _configure_ovn(snap)

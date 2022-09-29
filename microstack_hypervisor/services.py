@@ -108,7 +108,6 @@ def nova_api_metadata():
     sys.exit(exit_code)
 
 
-
 class NeutronOVNMetadataAgentService(OpenStackService):
     """A python service object used to run the neutron-ovn-metadata-agent daemon."""
 
