@@ -1,0 +1,62 @@
+[DEFAULT]
+# Set state path to writable directory
+state_path = {{ snap_common }}/lib
+# Log to systemd journal
+use_journal = True
+
+log_file = {{ snap_common }}/log/neutron.log
+debug = {{ logging.debug }}
+
+# AMQP connection to RabbitMQ
+transport_url = {{ rabbitmq.url }}
+
+{% if network.dns_domain %}
+dns_domain = {{ network.dns_domain }}
+{% endif %}
+
+notify_nova_on_port_status_changes = True
+notify_nova_on_port_data_changes = True
+
+[oslo_concurrency]
+# Oslo Concurrency lock path
+lock_path = {{ snap_common }}/lock
+
+[ovn]
+{% if network.dns_servers %}
+dns_servers= {{ network.dns_servers }}
+{% endif %}
+
+# TODO(dmitriis): enable once external bridge IP addressing for compute nodes is figured out.
+# enable_distributed_floating_ip = True
+
+[keystone_authtoken]
+auth_url = {{ identity.auth_url }}
+auth_type = password
+project_domain_name = {{ identity.project_domain_name }}
+user_domain_name = {{ identity.user_domain_name }}
+project_name = {{ identity.project_name }}
+username = {{ identity.username }}
+password = {{ identity.password }}
+
+[paste_deploy]
+flavor = keystone
+
+[placement]
+auth_url = {{ identity.auth_url }}
+auth_type = password
+project_domain_name = {{ identity.project_domain_name }}
+user_domain_name = {{ identity.user_domain_name }}
+region_name = {{ identity.region_name }}
+project_name = {{ identity.project_name }}
+username = {{ identity.username }}
+password = {{ identity.password }}
+
+[nova]
+auth_url = {{ identity.auth_url }}
+auth_type = password
+project_domain_name = {{ identity.project_domain_name }}
+user_domain_name = {{ identity.user_domain_name }}
+region_name = {{ identity.region_name }}
+project_name = {{ identity.project_name }}
+username = {{ identity.username }}
+password = {{ identity.password }}

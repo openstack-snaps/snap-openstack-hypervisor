@@ -14,7 +14,9 @@
 
 import logging
 import os
+import secrets
 import socket
+import string
 from pathlib import Path
 from typing import Any, Dict
 
@@ -46,6 +48,8 @@ DEFAULT_CONFIG = {
     "network.url": "http://localhost:9696",
     "network.physnet-name": "physnet1",
     "network.external-bridge": "br-ex",
+    "network.dns-domain": "openstack.local",
+    "network.dns-servers": "8.8.8.8",
     # General
     "logging.debug": False,
     "node.fqdn": socket.getfqdn(),
@@ -53,6 +57,12 @@ DEFAULT_CONFIG = {
     # TLS
     # OVN
 }
+
+SECRETS = [
+    "credentials.ovn-metadata-proxy-shared-secret"
+]
+
+DEFAULT_SECRET_LENGTH = 32
 
 # NOTE(dmitriis): there is currently no way to make sure this directory gets
 # recreated on reboot which would normally be done via systemd-tmpfiles.
@@ -93,6 +103,16 @@ DATA_DIRS = [
 ]
 
 
+def _generate_secret(length: int = DEFAULT_SECRET_LENGTH) -> str:
+    """Generate a secure secret.
+
+    :param length: length of generated secret
+    :type length: int
+    :return: string containing the generated secret
+    """
+    return "".join(secrets.choice(string.ascii_letters + string.digits) for i in range(length))
+
+
 def _mkdirs(snap: Snap) -> None:
     """Ensure directories requires for operator of snap exist.
 
@@ -104,6 +124,20 @@ def _mkdirs(snap: Snap) -> None:
         os.makedirs(snap.paths.common / dir, exist_ok=True)
     for dir in DATA_DIRS:
         os.makedirs(snap.paths.data / dir, exist_ok=True)
+
+
+def _setup_secrets(snap: Snap) -> None:
+    """Setup any secrets needed for snap operation.
+
+    :param snap: the snap instance
+    :type snap: Snap
+    :return: None
+    """
+    credentials = snap.config.get_options("credentials")
+
+    for secret in SECRETS:
+        if not credentials.get(secret):
+            snap.config.set({secret: _generate_secret()})
 
 
 def install(snap: Snap) -> None:
@@ -163,7 +197,8 @@ def _context_compat(context: Dict[str, Any]) -> Dict[str, Any]:
 
 TEMPLATES = {
     Path("etc/nova/nova.conf"): "nova.conf.j2",
-    # Path("etc/neutron/neutron.conf"): "neutron.conf.j2",
+    Path("etc/neutron/neutron.conf"): "neutron.conf.j2",
+    Path("etc/neutron/neutron_ovn_metadata_agent.ini"): "neutron_ovn_metadata_agent.ini.j2",
     Path("etc/libvirt/libvirtd.conf"): "libvirtd.conf.j2",
     Path("etc/libvirt/qemu.conf"): "qemu.conf.j2",
     Path("etc/libvirt/virtlogd.conf"): "virtlogd.conf.j2",
@@ -185,6 +220,7 @@ def configure(snap: Snap) -> None:
     logging.info("Running configure hook")
 
     _mkdirs(snap)
+    _setup_secrets(snap)
 
     context = snap.config.get_options(
         "compute",
@@ -193,6 +229,7 @@ def configure(snap: Snap) -> None:
         "logging",
         "node",
         "rabbitmq",
+        "credentials",
     ).as_dict()
 
     # Add some general snap path information

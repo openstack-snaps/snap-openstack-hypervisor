@@ -4,7 +4,6 @@
 
 # Internals
 
-- Metadata daemon entrypoint and secrets wiring
 - OVS -> OVN controller
 - Identity of OVN chassis.
 - Auto-detection of IP address for hypervisor

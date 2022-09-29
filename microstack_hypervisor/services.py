@@ -15,17 +15,23 @@
 import logging
 import subprocess
 import sys
+from pathlib import Path
 
 from snaphelpers import Snap
 
 from microstack_hypervisor.log import setup_logging
 
 
-class NovaComputeService:
-    """A python service object used to run the nova-compute daemon."""
+class OpenStackService:
+    """Base service object for OpenStack daemons."""
+
+    conf_files = []
+    conf_dirs = []
+
+    executable = None
 
     def run(self, snap: Snap) -> int:
-        """Runs the nova-compute service.
+        """Runs the OpenStack service.
 
         Invoked when this service is started.
 
@@ -34,20 +40,25 @@ class NovaComputeService:
         :return: exit code of the process
         :rtype: int
         """
-        setup_logging(snap.paths.common / f"nova-compute-{snap.name}.log")
-        etc_nova = snap.paths.common / "etc" / "nova"
-        etc_nova_conf = etc_nova / "nova.conf"
-        if not etc_nova_conf.exists():
-            logging.warn(f"{etc_nova_conf} not found, skipping execution")
-            return 0
+        setup_logging(snap.paths.common / f"{self.executable.name}-{snap.name}.log")
 
-        args = [
-            "--config-file",
-            str(etc_nova_conf),
-            "--config-dir",
-            str(etc_nova / "nova.conf.d"),
-        ]
-        executable = snap.paths.snap / "usr" / "bin" / "nova-compute"
+        args = []
+        for conf_file in self.conf_files:
+            args.extend(
+                [
+                    "--config-file",
+                    str(snap.paths.common / conf_file),
+                ]
+            )
+        for conf_dir in self.conf_dirs:
+            args.extend(
+                [
+                    "--config-dir",
+                    str(snap.paths.common / conf_dir),
+                ]
+            )
+
+        executable = snap.paths.snap / self.executable
 
         cmd = [str(executable)]
         cmd.extend(args)
@@ -57,9 +68,43 @@ class NovaComputeService:
         return completed_process.returncode
 
 
+class NovaComputeService(OpenStackService):
+    """A python service object used to run the nova-compute daemon."""
+
+    conf_files = [
+        Path("etc/nova/nova.conf"),
+    ]
+    conf_dirs = [
+        Path("etc/nova/nova.conf.d"),
+    ]
+
+    executable = Path("usr/bin/nova-compute")
+
+
 def nova_compute():
     """Main entry point for nova-compute."""
     service = NovaComputeService()
+    exit_code = service.run(Snap())
+    sys.exit(exit_code)
+
+
+class NeutronOVNMetadataAgentService(OpenStackService):
+    """A python service object used to run the neutron-ovn-metadata-agent daemon."""
+
+    conf_files = [
+        Path("etc/neutron/neutron.conf"),
+        Path("etc/neutron/neutron_ovn_metadata_agent.ini"),
+    ]
+    conf_dirs = [
+        Path("etc/neutron/neutron.conf.d"),
+    ]
+
+    executable = Path("usr/bin/neutron-ovn-metadata-agent")
+
+
+def neutron_ovn_metadata_agent():
+    """Main entry point for neutron-ovn-metadata-agent."""
+    service = NeutronOVNMetadataAgentService()
     exit_code = service.run(Snap())
     sys.exit(exit_code)
 

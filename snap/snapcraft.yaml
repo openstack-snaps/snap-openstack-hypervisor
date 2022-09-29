@@ -229,6 +229,16 @@ apps:
       # Needs access to block devices so that blockdev --flushbufs works.
       - block-devices
 
+  neutron-ovn-metadata-agent:
+    command: 'bin/neutron-ovn-metadata-agent-service'
+    daemon: simple
+    plugs:
+      - network
+      - network-bind
+      - network-control
+      - network-observe
+      - microstack-support
+
 parts:
   # Add Ubuntu Cloud Archive sources.
   # Allows us to fetch things such as updated libvirt.
