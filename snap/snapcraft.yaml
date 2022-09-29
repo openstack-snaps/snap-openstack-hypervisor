@@ -1,8 +1,3 @@
-# TODO
-# OVN/OVS
-# nova-compute
-# nova-api-os-metadata
-# neutron-ovn-metadata-agent
 name: microstack-hypervisor
 version: xena
 base: core20
