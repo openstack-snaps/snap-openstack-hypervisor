@@ -1,8 +1,5 @@
 # Configuration Options
 
-- TLS certificate configuration
-- OVN key/cert configuration
-
 # Internals
 
 - Auto-detection of IP address for hypervisor
