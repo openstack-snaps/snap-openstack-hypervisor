@@ -83,6 +83,8 @@ COMMON_DIRS = [
     Path("etc/nova/nova.conf.d"),
     Path("etc/neutron"),
     Path("etc/neutron/neutron.conf.d"),
+    Path("etc/ssl/certs"),
+    Path("etc/ssl/private"),
     # log
     Path("log/libvirt/qemu"),
     Path("log/ovn"),
@@ -311,6 +313,37 @@ def _configure_ovn_external_networking(snap: Snap) -> None:
     )
 
 
+def _configure_ovn_tls(snap: Snap) -> None:
+    """Configure OVS/OVN TLS.
+
+    :param snap: the snap reference
+    :type snap: Snap
+    :return: None
+    """
+    ssl_key = snap.paths.common / Path("etc/ssl/private/ovn-key.pem")
+    ssl_cert = snap.paths.common / Path("etc/ssl/certs/ovn-cert.pem")
+    ssl_cacert = snap.paths.common / Path("etc/ssl/certs/ovn-cacert.pem")
+    if not all(
+        (
+            ssl_key.exists(),
+            ssl_cert.exists(),
+            ssl_cacert.exists(),
+        )
+    ):
+        logging.info("OVN TLS configuration incomplete, skipping.")
+        return
+    subprocess.check_call(
+        [
+            "ovs-vsctl",
+            "--retry",
+            "set-ssl",
+            str(ssl_key),
+            str(ssl_cert),
+            str(ssl_cacert),
+        ]
+    )
+
+
 def configure(snap: Snap) -> None:
     """Runs the `configure` hook for the snap.
 
@@ -366,3 +399,4 @@ def configure(snap: Snap) -> None:
 
     _configure_ovn_base(snap)
     _configure_ovn_external_networking(snap)
+    _configure_ovn_tls(snap)
