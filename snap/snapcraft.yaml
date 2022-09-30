@@ -51,8 +51,6 @@ layout:
     bind: $SNAP/usr/lib/libvirt
   /usr/share/libvirt:
     bind: $SNAP/usr/share/libvirt
-  /etc/libvirt:
-    bind: $SNAP/etc/libvirt
   /usr/share/qemu:
     bind: $SNAP/usr/share/qemu
   # For UEFI Support, bindmount the OVMF and AAVMF directories
@@ -564,6 +562,13 @@ parts:
       - python3-systemd
     organize:
       usr/share/libvirt: usr/share/libvirt-nova
+    override-build: |
+      snapcraftctl build
+      # NOTE:
+      # purge libvirt0 provided components to avoid
+      # conflicts with the libvirt part provided versions
+      rm -rf $SNAPCRAFT_PART_INSTALL/usr/share/libvirt
+      rm -rf $SNAPCRAFT_PART_INSTALL/usr/lib/*/libvirt*
 
   snap-hooks:
     plugin: python
