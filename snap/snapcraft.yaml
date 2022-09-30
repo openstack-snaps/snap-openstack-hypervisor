@@ -537,6 +537,12 @@ parts:
     organize:
       '*': templates/  
 
+  bin:
+    source: bin/
+    plugin: dump
+    organize:
+      '*': bin/
+
   networking:
     plugin: nil
     after:
@@ -560,6 +566,7 @@ parts:
       - python3-os-brick
       - python3-distutils
       - python3-systemd
+      - haproxy
     organize:
       usr/share/libvirt: usr/share/libvirt-nova
     override-build: |
