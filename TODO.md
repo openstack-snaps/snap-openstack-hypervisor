@@ -1,12 +1,13 @@
 # Configuration Options
 
 - TLS certificate configuration
+- OVN key/cert configuration
 
 # Internals
 
 - Auto-detection of IP address for hypervisor
+- Auto-detection of kvm/qemu
 
 # Tech Debt
 
-- Unit tests for all hooks and entrypoints
-- README (config options, usage)
+- Unit tests for all entrypoints
