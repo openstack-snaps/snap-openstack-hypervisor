@@ -50,25 +50,25 @@ for full details.
 
 Configuration of options related to compute (Nova):
 
-* `compute.virt-type`
+* `compute.virt-type` libvirt Virtualization type
 
-Virtualization type libvirt should use; this is runtime detected
-by the snap and will be set to `kvm` if the host is capable of
-full virtualization or `qemu` if not.
+This option is runtime detected by the snap and will be set
+to `kvm` if the host is capable of full virtualization or `qemu` if not.
 
 * `compute.cpu-mode` (`host-model`) CPU mode for instances
 
 Valid values: `host-model`, `host-passthrough`, `custom`, `none`.
 
-* `compute.cpu-models`
+* `compute.cpu-models` CPU models for hypervisor
 
 An ordered list of CPU models the host supports.
 
 Only used with `compute.cpu-mode` is set to `custom`.
 
-For more details please refer to the Nova [configuration reference][https://docs.openstack.org/nova/latest/admin/cpu-models.html] for cpu models.
+For more details please refer to the Nova [configuration reference](https://docs.openstack.org/nova/latest/admin/cpu-models.html)
+for cpu models.
 
-* `compute.spice-proxy-address` (`localhost`)
+* `compute.spice-proxy-address` (`localhost`) IP address for SPICE consoles
 
 IP address to use for configuration of SPICE consoles in instances.
 
@@ -108,7 +108,7 @@ and OVN:
 * `network.dns-domain` DNS domain name to use for networking
 * `network.dns-servers` External DNS servers to use for forwarding DNS requests
 * `network.external-bridge` (`br-ex`)  Name of OVS external network bridge
-* `network.ip-address` IP address to use for overlay network endpoints
+* `network.ip-address` (`node.ip-address`) IP address to use for overlay network endpoints
 * `network.ovn-nb-connection` (`tcp:127.0.0.1:6642`) OVN Northbound DB connection URL
 * `network.ovn-sb-connection` (`tcp:127.0.0.1:6642`) OVN Southbound DB connection URL
 * `network.physnet-name` (`physnet1`) Neutron label for physical network
