@@ -148,7 +148,7 @@ class OVSDBServerService:
         args = [
             "--no-ovs-vswitchd",
             "--no-monitor",
-            "--system-id=random",
+            f"--system-id={snap.config.get('node.fqdn')}",
             "start",
         ]
         cmd = [str(executable)]
