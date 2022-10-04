@@ -44,7 +44,7 @@ DEFAULT_CONFIG = {
     "compute.cpu-mode": "host-model",
     "compute.virt-type": "qemu",
     "compute.cpu-models": UNSET,
-    "compute.spice-proxy-address": "localhost",
+    "compute.spice-proxy-address": UNSET,
     # Neutron
     "network.url": "http://localhost:9696",
     "network.physnet-name": "physnet1",
