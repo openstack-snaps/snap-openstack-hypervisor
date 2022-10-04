@@ -259,6 +259,11 @@ def _configure_ovn_base(snap: Snap) -> None:
             "open",
             ".",
             f"external-ids:system-id={system_id}",
+            "--",
+            "set",
+            "open",
+            ".",
+            "external_ids:ovn-match-northd-version=true",
         ]
     )
     sb_conn = snap.config.get("network.ovn-sb-connection")
