@@ -248,17 +248,17 @@ def _configure_ovn_base(snap: Snap) -> None:
             "set",
             "open",
             ".",
-            "external-ids:ovn-encap-type=geneve",
+            "external_ids:ovn-encap-type=geneve",
             "--",
             "set",
             "open",
             ".",
-            f"external-ids:ovn-encap-ip={ovn_encap_ip}",
+            f"external_ids:ovn-encap-ip={ovn_encap_ip}",
             "--",
             "set",
             "open",
             ".",
-            f"external-ids:system-id={system_id}",
+            f"external_ids:system-id={system_id}",
             "--",
             "set",
             "open",
@@ -271,7 +271,7 @@ def _configure_ovn_base(snap: Snap) -> None:
         logging.info("OVN SB connection URL not configured, skipping.")
         return
     subprocess.check_call(
-        ["ovs-vsctl", "--retry", "set", "open", ".", f"external-ids:ovn-remote={sb_conn}"]
+        ["ovs-vsctl", "--retry", "set", "open", ".", f"external_ids:ovn-remote={sb_conn}"]
     )
 
 
@@ -312,7 +312,7 @@ def _configure_ovn_external_networking(snap: Snap) -> None:
             "set",
             "open",
             ".",
-            f"external-ids:ovn-bridge-mappings={physnet_name}:{external_bridge}",
+            f"external_ids:ovn-bridge-mappings={physnet_name}:{external_bridge}",
         ]
     )
 
