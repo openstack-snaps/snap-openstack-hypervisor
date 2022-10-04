@@ -37,7 +37,6 @@ and with URL's for access to Network services:
 ```bash
 $ sudo snap set microstack-hypervisor \
     network.url=http://10.64.140.43:80/sunbeam-neutron \
-    network.ovn-sb-connection=tcp:10.152.183.220:6641 \
     network.ovn-sb-connection=tcp:10.152.183.220:6642
 ```
 
@@ -114,7 +113,6 @@ and OVN:
 * `network.physnet-name` (`physnet1`) Neutron label for physical network
 
 * `network.ip-address` (`node.ip-address`) IP address to use for overlay network endpoints
-* `network.ovn-nb-connection` (`tcp:127.0.0.1:6642`) OVN Northbound DB connection URL
 * `network.ovn-sb-connection` (`tcp:127.0.0.1:6642`) OVN Southbound DB connection URL
 
 If OVN is configured to use TLS for security, certificates and keys should

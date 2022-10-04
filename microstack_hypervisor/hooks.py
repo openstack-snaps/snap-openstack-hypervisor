@@ -51,7 +51,6 @@ DEFAULT_CONFIG = {
     "network.external-bridge": "br-ex",
     "network.dns-domain": "openstack.local",
     "network.dns-servers": "8.8.8.8",
-    "network.ovn-nb-connection": "tcp:127.0.0.1:6642",
     "network.ovn-sb-connection": "tcp:127.0.0.1:6642",
     "network.ip-address": UNSET,
     # General
