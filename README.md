@@ -10,14 +10,14 @@ as delivered by Sunbeam.
 To get started with the OpenStack Hypervisor, install the snap using snapd:
 
 ```bash
-$ sudo snap install microstack-hypervisor
+$ sudo snap install openstack-hypervisor
 ```
 
 The snap needs to be configured with credentials and URL's for the Identity
 service of the OpenStack cloud that it will form part of - for example:
 
 ```bash
-$ sudo snap set microstack-hypervisor \
+$ sudo snap set openstack-hypervisor \
     identity.auth_url=http://10.64.140.43:80/sunbeam-keystone \
     identity.username=nova-hypervisor-01 \
     identity.password=supersecure21
@@ -28,14 +28,14 @@ it's also possible to configure domain and project configuration.
 The snap also needs to be configured with access to RabbitMQ:
 
 ```bash
-$ sudo snap set microstack-hypervisor \
+$ sudo snap set openstack-hypervisor \
     rabbitmq.url=rabbit://nova:supersecure22@10.152.183.212:5672/openstack
 ```
 
 and with URL's for access to Network services:
 
 ```bash
-$ sudo snap set microstack-hypervisor \
+$ sudo snap set openstack-hypervisor \
     network.url=http://10.64.140.43:80/sunbeam-neutron \
     network.ovn-sb-connection=tcp:10.152.183.220:6642
 ```
