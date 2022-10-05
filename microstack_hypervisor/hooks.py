@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import logging
 import os
 import secrets
 import socket
+import stat
 import string
 import subprocess
 from pathlib import Path
@@ -42,7 +44,7 @@ DEFAULT_CONFIG = {
     "rabbitmq.url": "rabbit://localhost:5672",
     # Nova
     "compute.cpu-mode": "host-model",
-    "compute.virt-type": "qemu",
+    "compute.virt-type": "auto",
     "compute.cpu-models": UNSET,
     "compute.spice-proxy-address": UNSET,
     # Neutron
@@ -348,6 +350,99 @@ def _configure_ovn_tls(snap: Snap) -> None:
     )
 
 
+def _is_kvm_api_available() -> bool:
+    """Determine whether KVM is supportable."""
+    kvm_devpath = "/dev/kvm"
+    if not os.path.exists(kvm_devpath):
+        logging.warning(f"{kvm_devpath} does not exist")
+        return False
+    elif not os.access(kvm_devpath, os.R_OK | os.W_OK):
+        logging.warning(f"{kvm_devpath} is not RW-accessible")
+        return False
+    kvm_dev = os.stat(kvm_devpath)
+    if not stat.S_ISCHR(kvm_dev.st_mode):
+        logging.warning(f"{kvm_devpath} is not a character device")
+        return False
+    major = os.major(kvm_dev.st_rdev)
+    minor = os.minor(kvm_dev.st_rdev)
+    if major != 10:
+        logging.warning(f"{kvm_devpath} has an unexpected major number: {major}")
+        return False
+    elif minor != 232:
+        logging.warning(f"{kvm_devpath} has an unexpected minor number: {minor}")
+        return False
+    return True
+
+
+def _is_hw_virt_supported() -> bool:
+    """Determine whether hardware virt is supported."""
+    cpu_info = json.loads(subprocess.check_output(["lscpu", "-J"]))["lscpu"]
+    architecture = next(filter(lambda x: x["field"] == "Architecture:", cpu_info), None)[
+        "data"
+    ].split()
+    flags = next(filter(lambda x: x["field"] == "Flags:", cpu_info), None)
+    if flags is not None:
+        flags = flags["data"].split()
+
+    vendor_id = next(filter(lambda x: x["field"] == "Vendor ID:", cpu_info), None)
+    if vendor_id is not None:
+        vendor_id = vendor_id["data"]
+
+    # Mimic virt-host-validate code (from libvirt) and assume nested
+    # support on ppc64 LE or BE.
+    if architecture in ["ppc64", "ppc64le"]:
+        return True
+    elif vendor_id is not None and flags is not None:
+        if vendor_id == "AuthenticAMD" and "svm" in flags:
+            return True
+        elif vendor_id == "GenuineIntel" and "vmx" in flags:
+            return True
+        elif vendor_id == "IBM/S390" and "sie" in flags:
+            return True
+        elif vendor_id == "ARM":
+            # ARM 8.3-A added nested virtualization support but it is yet
+            # to land upstream https://lwn.net/Articles/812280/ at the time
+            # of writing (Nov 2020).
+            logging.warning(
+                "Nested virtualization is not supported on ARM" " - will use emulation"
+            )
+            return False
+        else:
+            logging.warning(
+                "Unable to determine hardware virtualization"
+                f' support by CPU vendor id "{vendor_id}":'
+                " assuming it is not supported."
+            )
+            return False
+    else:
+        logging.warning(
+            "Unable to determine hardware virtualization support"
+            " by the output of lscpu: assuming it is not"
+            " supported"
+        )
+        return False
+
+
+def _configure_kvm(snap) -> None:
+    """Configure KVM hardware virtualization.
+
+    :param snap: the snap reference
+    :type snap: Snap
+    :return: None
+    """
+    logging.info("Checking virtualization extensions presence on the host")
+    # Use KVM if it is supported, alternatively fall back to software
+    # emulation.
+    if _is_hw_virt_supported() and _is_kvm_api_available():
+        logging.info("Hardware virtualization is supported - KVM will be used.")
+        snap.config.set({"compute.virt-type": "kvm"})
+    else:
+        logging.warning(
+            "Hardware virtualization is not supported - software" " emulation will be used."
+        )
+        snap.config.set({"compute.virt-type": "qemu"})
+
+
 def configure(snap: Snap) -> None:
     """Runs the `configure` hook for the snap.
 
@@ -404,3 +499,4 @@ def configure(snap: Snap) -> None:
     _configure_ovn_base(snap)
     _configure_ovn_external_networking(snap)
     _configure_ovn_tls(snap)
+    _configure_kvm(snap)

@@ -61,9 +61,6 @@ layout:
     symlink: $SNAP/usr/share/OVMF
   /usr/share/AAVMF:
     symlink: $SNAP/usr/share/AAVMF
-  # Libvirt has a hard-coded path for the apparmor directory.
-  /etc/apparmor.d:
-    symlink: $SNAP_COMMON/etc/apparmor.d
 
 apps:
   # Libvirt
@@ -568,6 +565,7 @@ parts:
       - python3-distutils
       - python3-systemd
       - haproxy
+      - util-linux
     organize:
       usr/share/libvirt: usr/share/libvirt-nova
     override-build: |
