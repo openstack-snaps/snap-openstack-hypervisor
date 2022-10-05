@@ -1,13 +1,13 @@
-# MicroStack Hypervisor Snap
+# OpenStack Hypervisor Snap
 
-This repository contains the source for the the MicroStack Hypervisor snap.
+This repository contains the source for the the OpenStack Hypervisor snap.
 
 This snap is designed to be used with a deployed OpenStack Control plane such
 as delivered by Sunbeam.
 
 ## Getting Started
 
-To get started with the MicroStack Hypervisor, install the snap using snapd:
+To get started with the OpenStack Hypervisor, install the snap using snapd:
 
 ```bash
 $ sudo snap install microstack-hypervisor
