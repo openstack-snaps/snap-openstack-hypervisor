@@ -42,28 +42,28 @@ system-usernames:
 
 layout:
   /usr/local/bin:
-    bind: $SNAP/usr/local/bin
+    symlink: $SNAP/usr/local/bin
   /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/ceph:
-    bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/ceph
+    symlink: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/ceph
   /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu:
-    bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu
+    symlink: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu
   /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pulseaudio:
-    bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pulseaudio
+    symlink: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pulseaudio
   /usr/lib/libvirt:
-    bind: $SNAP/usr/lib/libvirt
+    symlink: $SNAP/usr/lib/libvirt
   /usr/share/libvirt:
-    bind: $SNAP/usr/share/libvirt
+    symlink: $SNAP/usr/share/libvirt
   /usr/share/qemu:
-    bind: $SNAP/usr/share/qemu
+    symlink: $SNAP/usr/share/qemu
   # For UEFI Support, bindmount the OVMF and AAVMF directories
   # appropriately. UEFI support is required for aarch64.
   /usr/share/OVMF:
-    bind: $SNAP/usr/share/OVMF
+    symlink: $SNAP/usr/share/OVMF
   /usr/share/AAVMF:
-    bind: $SNAP/usr/share/AAVMF
+    symlink: $SNAP/usr/share/AAVMF
   # Libvirt has a hard-coded path for the apparmor directory.
   /etc/apparmor.d:
-    bind: $SNAP_COMMON/etc/apparmor.d
+    symlink: $SNAP_COMMON/etc/apparmor.d
 
 apps:
   # Libvirt
@@ -586,7 +586,7 @@ parts:
       - PYTHONPATH: ''    
     source: .
     after:
-      - nova
+      - openstack
 
 hooks:
   install:
