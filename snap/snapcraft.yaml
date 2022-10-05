@@ -1,8 +1,10 @@
-name: microstack-hypervisor
+name: openstack-hypervisor
 version: xena
 base: core20
-summary: Partial snap for testing parts
-description: See above
+summary: OpenStack Hypervisor
+description: |
+  The OpenStack Hypervisor snap provides the requires components
+  to operate a cloud hypervisor as part of an OpenStack deployment.
 grade: devel
 confinement: strict
 environment:
@@ -117,7 +119,6 @@ apps:
       - network
       - network-bind
       - network-control
-      # NETLINK_NETFILTER SOCK_RAW sockets
       - firewall-control
       - openvswitch-support
       - process-control
@@ -555,7 +556,7 @@ parts:
        # Deal with alternatives usage in deb packages.
        usr/lib/openvswitch-switch-dpdk/ovs-vswitchd-dpdk: usr/sbin/ovs-vswitchd
 
-  nova:
+  openstack:
     plugin: nil
     after:
       - uca-sources
