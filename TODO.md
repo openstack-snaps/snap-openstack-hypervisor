@@ -3,7 +3,6 @@
 # Internals
 
 - Auto-detection of IP address for hypervisor
-- Auto-detection of kvm/qemu
 
 # Tech Debt
 
