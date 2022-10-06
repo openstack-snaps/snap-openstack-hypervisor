@@ -14,11 +14,11 @@
 
 import pytest
 
-from microstack_hypervisor import hooks
+from openstack_hypervisor import hooks
 
 
 class TestHooks:
-    """Contains tests for microstack_hypervisor.hooks."""
+    """Contains tests for openstack_hypervisor.hooks."""
 
     def test_install_hook(self, snap, os_makedirs):
         """Tests the install hook."""

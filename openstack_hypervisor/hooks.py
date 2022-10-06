@@ -26,7 +26,7 @@ from typing import Any, Dict
 from jinja2 import Environment, FileSystemLoader, Template
 from snaphelpers import Snap
 
-from microstack_hypervisor.log import setup_logging
+from openstack_hypervisor.log import setup_logging
 
 UNSET = ""
 
@@ -448,7 +448,7 @@ def configure(snap: Snap) -> None:
 
     This method is invoked when the configure hook is executed by the snapd
     daemon. The `configure` hook is invoked when the user runs a sudo snap
-    set microstack-hypervisor.<foo> setting.
+    set openstack-hypervisor.<foo> setting.
 
     :param snap: the snap reference
     :type snap: Snap

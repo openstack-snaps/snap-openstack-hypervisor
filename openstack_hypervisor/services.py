@@ -19,7 +19,7 @@ from pathlib import Path
 
 from snaphelpers import Snap
 
-from microstack_hypervisor.log import setup_logging
+from openstack_hypervisor.log import setup_logging
 
 
 class OpenStackService:

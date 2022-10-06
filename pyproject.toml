@@ -34,8 +34,8 @@ ignore = ["W503", "E501", "D107"]
 per-file-ignores = [
     "tests/*:D100,D101,D102,D103,D104",
     "setup.py:D100",
-    "microstack_hypervisor/*:D100",
-    "microstack_hypervisor/__init__.py:D104,C801"
+    "openstack_hypervisor/*:D100",
+    "openstack_hypervisor/__init__.py:D104,C801"
 ]
 docstring-convention = "google"
 # Check for properly formatted copyright header in each file
