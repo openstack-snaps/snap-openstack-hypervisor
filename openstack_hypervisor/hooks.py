@@ -206,6 +206,7 @@ TEMPLATES = {
     Path("etc/libvirt/libvirtd.conf"): "libvirtd.conf.j2",
     Path("etc/libvirt/qemu.conf"): "qemu.conf.j2",
     Path("etc/libvirt/virtlogd.conf"): "virtlogd.conf.j2",
+    Path("etc/openvswitch/system-id.conf"): "system-id.conf.j2",
 }
 
 
