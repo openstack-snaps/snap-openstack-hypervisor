@@ -54,6 +54,7 @@ DEFAULT_CONFIG = {
     "network.dns-domain": "openstack.local",
     "network.dns-servers": "8.8.8.8",
     "network.ovn-sb-connection": "tcp:127.0.0.1:6642",
+    "network.enable-gateway": False,
     "network.ip-address": UNSET,
     # General
     "logging.debug": False,
@@ -318,6 +319,33 @@ def _configure_ovn_external_networking(snap: Snap) -> None:
             f"external_ids:ovn-bridge-mappings={physnet_name}:{external_bridge}",
         ]
     )
+
+    if snap.config.get("network.enable-gateway"):
+        logging.info("Enabling OVS as external gateway")
+        subprocess.check_call(
+            [
+                "ovs-vsctl",
+                "--retry",
+                "set",
+                "open",
+                ".",
+                "external_ids:ovn-cms-options=enable-chassis-as-gw",
+            ]
+        )
+    else:
+        logging.info("Disabling OVS as external gateway")
+        subprocess.check_call(
+            [
+                "ovs-vsctl",
+                "--retry",
+                "remove",
+                "open",
+                ".",
+                "external_ids",
+                "ovn-cms-options",
+                "enable-chassis-as-gw",
+            ]
+        )
 
 
 def _configure_ovn_tls(snap: Snap) -> None:
