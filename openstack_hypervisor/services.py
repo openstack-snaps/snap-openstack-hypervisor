@@ -24,7 +24,7 @@ from openstack_hypervisor.log import setup_logging
 
 
 def entry_point(service_class):
-    """Entry point wrapper for services"""
+    """Entry point wrapper for services."""
     service = service_class()
     exit_code = service.run(Snap())
     sys.exit(exit_code)
