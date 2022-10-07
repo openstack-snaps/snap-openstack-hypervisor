@@ -15,11 +15,19 @@
 import logging
 import subprocess
 import sys
+from functools import partial
 from pathlib import Path
 
 from snaphelpers import Snap
 
 from openstack_hypervisor.log import setup_logging
+
+
+def entry_point(service_class):
+    """Entry point wrapper for services"""
+    service = service_class()
+    exit_code = service.run(Snap())
+    sys.exit(exit_code)
 
 
 class OpenStackService:
@@ -81,11 +89,7 @@ class NovaComputeService(OpenStackService):
     executable = Path("usr/bin/nova-compute")
 
 
-def nova_compute():
-    """Main entry point for nova-compute."""
-    service = NovaComputeService()
-    exit_code = service.run(Snap())
-    sys.exit(exit_code)
+nova_compute = partial(entry_point, NovaComputeService)
 
 
 class NovaAPIMetadataService(OpenStackService):
@@ -101,11 +105,7 @@ class NovaAPIMetadataService(OpenStackService):
     executable = Path("usr/bin/nova-api-metadata")
 
 
-def nova_api_metadata():
-    """Main entry point for nova-compute."""
-    service = NovaAPIMetadataService()
-    exit_code = service.run(Snap())
-    sys.exit(exit_code)
+nova_api_metadata = partial(entry_point, NovaAPIMetadataService)
 
 
 class NeutronOVNMetadataAgentService(OpenStackService):
@@ -122,11 +122,7 @@ class NeutronOVNMetadataAgentService(OpenStackService):
     executable = Path("usr/bin/neutron-ovn-metadata-agent")
 
 
-def neutron_ovn_metadata_agent():
-    """Main entry point for neutron-ovn-metadata-agent."""
-    service = NeutronOVNMetadataAgentService()
-    exit_code = service.run(Snap())
-    sys.exit(exit_code)
+neutron_ovn_metadata_agent = partial(entry_point, NeutronOVNMetadataAgentService)
 
 
 class OVSDBServerService:
@@ -160,8 +156,4 @@ class OVSDBServerService:
         return completed_process.returncode
 
 
-def ovsdb_server():
-    """Main entry point for ovsdb-server."""
-    service = OVSDBServerService()
-    exit_code = service.run(Snap())
-    sys.exit(exit_code)
+ovsdb_server = partial(entry_point, OVSDBServerService)
