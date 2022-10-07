@@ -98,12 +98,13 @@ COMMON_DIRS = [
     Path("run/openvswitch"),
     # lock
     Path("lock"),
+    # Instances
+    Path("lib/nova/instances"),
 ]
 
 DATA_DIRS = [
     Path("lib/libvirt/images"),
     Path("lib/ovn"),
-    Path("lib/nova/instances"),
     Path("lib/neutron"),
 ]
 
