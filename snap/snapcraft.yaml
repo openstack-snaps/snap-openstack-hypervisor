@@ -567,7 +567,8 @@ parts:
       - haproxy
       - util-linux
     organize:
-      usr/share/libvirt: usr/share/libvirt-nova
+      usr/share/ieee-data/iab.txt: usr/lib/python3/dist-packages/netaddr/eui/iab.txt
+      usr/share/ieee-data/oui.txt: usr/lib/python3/dist-packages/netaddr/eui/oui.txt
     override-build: |
       snapcraftctl build
       # NOTE:

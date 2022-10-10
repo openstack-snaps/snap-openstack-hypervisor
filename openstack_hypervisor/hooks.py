@@ -48,7 +48,6 @@ DEFAULT_CONFIG = {
     "compute.cpu-models": UNSET,
     "compute.spice-proxy-address": UNSET,
     # Neutron
-    "network.url": "http://localhost:9696",
     "network.physnet-name": "physnet1",
     "network.external-bridge": "br-ex",
     "network.dns-domain": "openstack.local",

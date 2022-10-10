@@ -36,7 +36,6 @@ and with URL's for access to Network services:
 
 ```bash
 $ sudo snap set openstack-hypervisor \
-    network.url=http://10.64.140.43:80/sunbeam-neutron \
     network.ovn-sb-connection=tcp:10.152.183.220:6642
 ```
 
@@ -103,8 +102,6 @@ run as part of the snap.
 
 Configuration of options related to networking, including Neutron
 and OVN:
-
-* `network.url` Full URL for Neutron API
 
 * `network.dns-domain` DNS domain name to use for networking
 * `network.dns-servers` External DNS servers to use for forwarding DNS requests
