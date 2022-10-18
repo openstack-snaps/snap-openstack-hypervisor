@@ -18,6 +18,8 @@ import sys
 from functools import partial
 from pathlib import Path
 
+import uvicorn
+
 from snaphelpers import Snap
 
 from openstack_hypervisor.log import setup_logging
@@ -157,3 +159,49 @@ class OVSDBServerService:
 
 
 ovsdb_server = partial(entry_point, OVSDBServerService)
+
+
+class ConfigurationService:
+    """A service to configure the Openstack Hypervisor across a socket."""
+
+    def run(self, snap: Snap) -> int:
+        """Runs the ConfigurationService.
+
+        :param snap: the snap context
+        :type snap: Snap
+        :return: exit code of the process
+        :rtype: int
+        """
+        setup_logging(snap.paths.common / f"api-{snap.name}.log")
+
+        uds = snap.paths.common / "run" / "hypervisor-config" / "unix.socket"
+
+        logging.info("Starting hypervisor-config service")
+        executable = snap.paths.snap / "bin" / "uvicorn"
+        args = [
+            "openstack_hypervisor.api:app",
+            "--uds",
+            str(uds),
+        ]
+        cmd = [str(executable)]
+        cmd.extend(args)
+        logging.info(f"issuing command: {' '.join(cmd)}")
+
+        completed_process = subprocess.run(cmd)
+
+        logging.info(f"Exiting with code {completed_process.returncode}")
+        return completed_process.returncode
+        # try:
+        #     config = uvicorn.Config("openstack_hypervisor.api:app",
+        #                             uds=str(uds), log_level='debug')
+        #     server = uvicorn.Server(config)
+        #     server.run()
+        # except Exception:  # noqa
+        #     logging.exception("Error!")
+        #     return 1
+        #
+        # logging.info("Exiting with 0")
+        # return 0
+
+
+config_server = partial(entry_point, ConfigurationService)

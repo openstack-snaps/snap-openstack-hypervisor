@@ -15,6 +15,7 @@
 import json
 import logging
 import os
+import time
 import secrets
 import socket
 import stat
@@ -95,6 +96,7 @@ COMMON_DIRS = [
     # run
     Path("run/ovn"),
     Path("run/openvswitch"),
+    Path("run/hypervisor-config"),
     # lock
     Path("lock"),
     # Instances
