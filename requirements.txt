@@ -3,5 +3,6 @@ git+https://github.com/albertodonato/snap-helpers#egg=snap-helpers
 jinja2
 
 fastapi
+gunicorn
 pydantic
 uvicorn[standard]
