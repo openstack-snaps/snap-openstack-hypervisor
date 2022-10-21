@@ -15,24 +15,22 @@
 import json
 
 from fastapi import FastAPI
-
 from pydantic import BaseModel
 from snaphelpers import Snap
 
-from openstack_hypervisor import model
-from openstack_hypervisor import hooks
+from openstack_hypervisor import hooks, model
 
 app = FastAPI()
 snap = Snap()
 
 
 MAPPING = {
-    'identity': model.IdentityServiceConfig,
-    'rabbitmq': model.RabbitMQConfig,
-    'compute': model.ComputeConfig,
-    'network': model.NetworkConfig,
-    'node': model.NodeConfig,
-    'logging': model.LoggingConfig,
+    "identity": model.IdentityServiceConfig,
+    "rabbitmq": model.RabbitMQConfig,
+    "compute": model.ComputeConfig,
+    "network": model.NetworkConfig,
+    "node": model.NodeConfig,
+    "logging": model.LoggingConfig,
 }
 
 
@@ -42,9 +40,7 @@ async def root():
 
     :return:
     """
-    return {
-        "version": "0.1"
-    }
+    return {"version": "0.1"}
 
 
 @app.get("/settings")
@@ -93,29 +89,29 @@ def _update_settings(section: str, config: BaseModel):
 
 @app.patch("/settings/identity")
 async def update_identity(config: model.IdentityServiceConfig):
-    return _update_settings('identity', config)
+    return _update_settings("identity", config)
 
 
 @app.patch("/settings/network")
 async def update_network(config: model.NetworkConfig):
-    return _update_settings('network', config)
+    return _update_settings("network", config)
 
 
 @app.patch("/settings/rabbitmq")
 async def update_rabbitmq(config: model.RabbitMQConfig):
-    return _update_settings('rabbitmq', config)
+    return _update_settings("rabbitmq", config)
 
 
 @app.patch("/settings/compute")
 async def update_compute(config: model.ComputeConfig):
-    return _update_settings('compute', config)
+    return _update_settings("compute", config)
 
 
 @app.patch("/settings/node")
 async def update_node(config: model.NodeConfig):
-    return _update_settings('node', config)
+    return _update_settings("node", config)
 
 
 @app.patch("/settings/logging")
 async def update_logging(config: model.LoggingConfig):
-    return _update_settings('logging', config)
+    return _update_settings("logging", config)
