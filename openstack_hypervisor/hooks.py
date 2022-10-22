@@ -20,6 +20,7 @@ import socket
 import stat
 import string
 import subprocess
+import time
 from pathlib import Path
 from typing import Any, Dict
 
@@ -95,6 +96,7 @@ COMMON_DIRS = [
     # run
     Path("run/ovn"),
     Path("run/openvswitch"),
+    Path("run/hypervisor-config"),
     # lock
     Path("lock"),
     # Instances

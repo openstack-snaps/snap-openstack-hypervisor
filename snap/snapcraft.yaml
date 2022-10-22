@@ -245,6 +245,22 @@ apps:
       - firewall-control
       - microstack-support
 
+  hypervisor-config-service:
+    command: 'bin/gunicorn openstack_hypervisor.api:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind unix:$SNAP_COMMON/run/hypervisor-config/unix.socket'
+    restart-condition: on-failure
+    daemon: simple
+    slots:
+      - hypervisor-config
+    plugs:
+      - network
+      - network-bind
+      - microstack-support
+    install-mode: enable
+    sockets:
+      unix:
+        listen-stream: $SNAP_COMMON/run/hypervisor-config/unix.socket
+        socket-mode: 0666
+
 parts:
   # Add Ubuntu Cloud Archive sources.
   # Allows us to fetch things such as updated libvirt.
@@ -566,9 +582,9 @@ parts:
       - python3-systemd
       - haproxy
       - util-linux
-    organize:
-      usr/share/ieee-data/iab.txt: usr/lib/python3/dist-packages/netaddr/eui/iab.txt
-      usr/share/ieee-data/oui.txt: usr/lib/python3/dist-packages/netaddr/eui/oui.txt
+#    organize:
+#      usr/share/ieee-data/iab.txt: usr/lib/python3/dist-packages/netaddr/eui/iab.txt
+#      usr/share/ieee-data/oui.txt: usr/lib/python3/dist-packages/netaddr/eui/oui.txt
     override-build: |
       snapcraftctl build
       # NOTE:
@@ -582,13 +598,25 @@ parts:
     build-environment:
       # Workaround to ensure rebuild of snap work
       - PATH: /usr/bin:$PATH
-      - PYTHONPATH: ''    
+      - PYTHONPATH: ''
     source: .
     after:
       - openstack
+
+slots:
+  hypervisor-config:
+    interface: content
+    source:
+      write:
+        - $SNAP_COMMON/run/hypervisor-config
 
 hooks:
   install:
     plugs: [ network, microstack-support]
   configure:
     plugs: [ network, microstack-support]
+  connect-slot-hypervisor-config:
+    plugs:
+      - network
+      - network-bind
+      - microstack-support
