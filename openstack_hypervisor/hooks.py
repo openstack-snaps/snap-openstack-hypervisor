@@ -392,11 +392,11 @@ def _configure_ovn_tls(snap: Snap) -> None:
     ssl_cert = snap.paths.common / Path("etc/ssl/certs/ovn-cert.pem")
     ssl_cacert = snap.paths.common / Path("etc/ssl/certs/ovn-cacert.pem")
 
-    with open(ssl_key, "w") as f:
+    with open(ssl_key, "wb") as f:
         f.write(ovn_key)
-    with open(ssl_cert, "w") as f:
+    with open(ssl_cert, "wb") as f:
         f.write(ovn_cert)
-    with open(ssl_cacert, "w") as f:
+    with open(ssl_cacert, "wb") as f:
         f.write(ovn_cacert)
 
     subprocess.check_call(
