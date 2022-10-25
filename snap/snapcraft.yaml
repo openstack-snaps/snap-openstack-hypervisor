@@ -582,9 +582,9 @@ parts:
       - python3-systemd
       - haproxy
       - util-linux
-#    organize:
-#      usr/share/ieee-data/iab.txt: usr/lib/python3/dist-packages/netaddr/eui/iab.txt
-#      usr/share/ieee-data/oui.txt: usr/lib/python3/dist-packages/netaddr/eui/oui.txt
+    organize:
+      usr/share/ieee-data/iab.txt: usr/lib/python3/dist-packages/netaddr/eui/iab.txt
+      usr/share/ieee-data/oui.txt: usr/lib/python3/dist-packages/netaddr/eui/oui.txt
     override-build: |
       snapcraftctl build
       # NOTE:
