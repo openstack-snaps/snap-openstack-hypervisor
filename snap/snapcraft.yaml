@@ -582,9 +582,6 @@ parts:
       - python3-systemd
       - haproxy
       - util-linux
-#    organize:
-#      usr/share/ieee-data/iab.txt: usr/lib/python3/dist-packages/netaddr/eui/iab.txt
-#      usr/share/ieee-data/oui.txt: usr/lib/python3/dist-packages/netaddr/eui/oui.txt
     override-build: |
       snapcraftctl build
       # NOTE:
@@ -592,6 +589,9 @@ parts:
       # conflicts with the libvirt part provided versions
       rm -rf $SNAPCRAFT_PART_INSTALL/usr/share/libvirt
       rm -rf $SNAPCRAFT_PART_INSTALL/usr/lib/*/libvirt*
+      # purge some dangling symlinks
+      rm -rf $SNAPCRAFT_PART_INSTALL/usr/lib/python3/dist-packages/netaddr/eui/iab.txt
+      rm -rf $SNAPCRAFT_PART_INSTALL/usr/lib/python3/dist-packages/netaddr/eui/oui.txt
 
   snap-hooks:
     plugin: python

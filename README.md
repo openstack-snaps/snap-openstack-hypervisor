@@ -113,12 +113,13 @@ and OVN:
 * `network.ovn-sb-connection` (`tcp:127.0.0.1:6642`) OVN Southbound DB connection URL
 * `network.enable-gateway` (False) Enable OVS/OVS as north/south gateway
 
-If OVN is configured to use TLS for security, certificates and keys should
-be placed in the following locations:
+TLS configuration for OVN can also be supplied via snap configuration:
 
-* `$SNAP_COMMON/etc/ssl/certs/ovn-cacert.pem`: CA certificate of authority that signed certificate below.
-* `$SNAP_COMMON/etc/ssl/certs/ovn-cert.pem`: Certificate for local OVN client access
-* `$SNAP_COMMON/etc/ssl/private/ovn-key.pem`: Private key for local OVN client access
+* `network.ovn-key` Private TLS key
+* `network.ovn-cert` TLS certificate for `ovn-key`
+* `network.ovn-cacert` CA certificate (and chain) for certificate validation
+
+All of the above options must be provided as base64 encoded strings.
 
 ### rabbitmq
 
