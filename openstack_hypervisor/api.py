@@ -36,7 +36,7 @@ MAPPING = {
 
 @app.get("/")
 async def root():
-    """Handles requests to the root URL
+    """Handles requests to the root URL.
 
     :return:
     """
@@ -45,7 +45,7 @@ async def root():
 
 @app.get("/settings")
 async def settings():
-    """Handle requests for settings
+    """Handle requests for settings.
 
     :return:
     """
@@ -70,7 +70,7 @@ async def section_settings(section: str):
 
 
 def _update_settings(section: str, config: BaseModel):
-    """Updates the snap settings
+    """Updates the snap settings.
 
     :param section:
     :param config:
@@ -89,29 +89,35 @@ def _update_settings(section: str, config: BaseModel):
 
 @app.patch("/settings/identity")
 async def update_identity(config: model.IdentityServiceConfig):
+    """Updates identity section settings."""
     return _update_settings("identity", config)
 
 
 @app.patch("/settings/network")
 async def update_network(config: model.NetworkConfig):
+    """Updates network section settings."""
     return _update_settings("network", config)
 
 
 @app.patch("/settings/rabbitmq")
 async def update_rabbitmq(config: model.RabbitMQConfig):
+    """Updates rabbitmq section settings."""
     return _update_settings("rabbitmq", config)
 
 
 @app.patch("/settings/compute")
 async def update_compute(config: model.ComputeConfig):
+    """Updates compute section settings."""
     return _update_settings("compute", config)
 
 
 @app.patch("/settings/node")
 async def update_node(config: model.NodeConfig):
+    """Updates node section settings."""
     return _update_settings("node", config)
 
 
 @app.patch("/settings/logging")
 async def update_logging(config: model.LoggingConfig):
+    """Updates logging section settings."""
     return _update_settings("logging", config)

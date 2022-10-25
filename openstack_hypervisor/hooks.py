@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import base64
+import binascii
 import json
 import logging
 import os
@@ -20,7 +22,6 @@ import socket
 import stat
 import string
 import subprocess
-import time
 from pathlib import Path
 from typing import Any, Dict
 
@@ -54,6 +55,9 @@ DEFAULT_CONFIG = {
     "network.dns-domain": "openstack.local",
     "network.dns-servers": "8.8.8.8",
     "network.ovn-sb-connection": "tcp:127.0.0.1:6642",
+    "network.ovn-cert": UNSET,
+    "network.ovn-key": UNSET,
+    "network.ovn-cacert": UNSET,
     "network.enable-gateway": False,
     "network.ip-address": UNSET,
     # General
@@ -357,18 +361,44 @@ def _configure_ovn_tls(snap: Snap) -> None:
     :type snap: Snap
     :return: None
     """
-    ssl_key = snap.paths.common / Path("etc/ssl/private/ovn-key.pem")
-    ssl_cert = snap.paths.common / Path("etc/ssl/certs/ovn-cert.pem")
-    ssl_cacert = snap.paths.common / Path("etc/ssl/certs/ovn-cacert.pem")
+
+    def _parse_tls(config_key: str) -> str:
+        """Parse Base64 encoded key or cert.
+
+        :param config_key: base64 encoded data (or UNSET)
+        :type config_key: str
+        :return: decoded data or None
+        :rtype: str
+        """
+        try:
+            return base64.b64decode(snap.config.get(config_key))
+        except (binascii.Error, TypeError):
+            pass
+
+    ovn_cert = _parse_tls("network.ovn-cert")
+    ovn_cacert = _parse_tls("network.ovn-cacert")
+    ovn_key = _parse_tls("network.ovn-key")
     if not all(
         (
-            ssl_key.exists(),
-            ssl_cert.exists(),
-            ssl_cacert.exists(),
+            ovn_cert,
+            ovn_cacert,
+            ovn_key,
         )
     ):
         logging.info("OVN TLS configuration incomplete, skipping.")
         return
+
+    ssl_key = snap.paths.common / Path("etc/ssl/private/ovn-key.pem")
+    ssl_cert = snap.paths.common / Path("etc/ssl/certs/ovn-cert.pem")
+    ssl_cacert = snap.paths.common / Path("etc/ssl/certs/ovn-cacert.pem")
+
+    with open(ssl_key, "w") as f:
+        f.write(ovn_key)
+    with open(ssl_cert, "w") as f:
+        f.write(ovn_cert)
+    with open(ssl_cacert, "w") as f:
+        f.write(ovn_cacert)
+
     subprocess.check_call(
         [
             "ovs-vsctl",
