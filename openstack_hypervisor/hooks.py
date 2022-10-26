@@ -165,6 +165,7 @@ def install(snap: Snap) -> None:
     logging.info("Running install hook")
     logging.info(f"Setting default config: {DEFAULT_CONFIG}")
     snap.config.set(DEFAULT_CONFIG)
+    _mkdirs(snap)
 
 
 def _get_template(snap: Snap, template: str) -> Template:
