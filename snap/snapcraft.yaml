@@ -172,19 +172,6 @@ apps:
       - network
       - network-bind
       - microstack-support
-  ovn-nbctl:
-    command: usr/bin/ovn-nbctl
-    plugs:
-      - network
-      - network-bind
-      - microstack-support
-  ovn-sbctl:
-    command: usr/bin/ovn-sbctl
-    plugs:
-      - network
-      - network-bind
-      - process-control
-      - microstack-support
 
   ovs-vsctl:
     command: usr/bin/ovs-vsctl
