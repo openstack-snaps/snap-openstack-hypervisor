@@ -14,6 +14,7 @@
 
 import base64
 import binascii
+import hashlib
 import json
 import logging
 import os
@@ -208,14 +209,70 @@ def _context_compat(context: Dict[str, Any]) -> Dict[str, Any]:
 
 
 TEMPLATES = {
-    Path("etc/nova/nova.conf"): "nova.conf.j2",
-    Path("etc/neutron/neutron.conf"): "neutron.conf.j2",
-    Path("etc/neutron/neutron_ovn_metadata_agent.ini"): "neutron_ovn_metadata_agent.ini.j2",
-    Path("etc/libvirt/libvirtd.conf"): "libvirtd.conf.j2",
-    Path("etc/libvirt/qemu.conf"): "qemu.conf.j2",
-    Path("etc/libvirt/virtlogd.conf"): "virtlogd.conf.j2",
-    Path("etc/openvswitch/system-id.conf"): "system-id.conf.j2",
+    Path("etc/nova/nova.conf"): {
+        "template": "nova.conf.j2",
+        "services": ["nova-compute", "nova-api-metadata"],
+    },
+    Path("etc/neutron/neutron.conf"): {
+        "template": "neutron.conf.j2",
+        "services": ["neutron-ovn-metadata-agent"],
+    },
+    Path("etc/neutron/neutron_ovn_metadata_agent.ini"): {
+        "template": "neutron_ovn_metadata_agent.ini.j2",
+        "services": ["neutron-ovn-metadata-agent"],
+    },
+    Path("etc/libvirt/libvirtd.conf"): {"template": "libvirtd.conf.j2", "services": ["libvirtd"]},
+    Path("etc/libvirt/qemu.conf"): {
+        "template": "qemu.conf.j2",
+    },
+    Path("etc/libvirt/virtlogd.conf"): {"template": "virtlogd.conf.j2", "services": ["virtlogd"]},
+    Path("etc/openvswitch/system-id.conf"): {
+        "template": "system-id.conf.j2",
+    },
 }
+
+
+class RestartOnChange(object):
+    """Restart services based on file context changes."""
+
+    def __init__(self, snap: Snap, files: dict):
+        self.snap = snap
+        self.files = files
+        self.file_hash = {}
+
+    def __enter__(self):
+        """Record all file hashes on entry."""
+        for file in self.files:
+            full_path = self.snap.paths.common / file
+            if full_path.exists():
+                with open(full_path, "rb") as f:
+                    self.file_hash[file] = hashlib.sha256(f.read()).hexdigest()
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        """Restart any services where hashes have changed."""
+        restart_services = []
+        for file, hash in self.file_hash.items():
+            full_path = self.snap.paths.common / file
+            if full_path.exists():
+                if file not in self.file_hash:
+                    restart_services.extend(self.files[file].get("services", []))
+                    continue
+                with open(full_path, "rb") as f:
+                    new_hash = hashlib.sha256(f.read()).hexdigest()
+                if new_hash != hash:
+                    restart_services.extend(self.files[file].get("services", []))
+
+        restart_services = set(restart_services)
+        services = self.snap.services.list()
+        for service in restart_services:
+            logging.info(f"Restarting {service}")
+            services[service].stop()
+            services[service].start(enable=True)
+
+
+def restart_on_chnage(snap: Snap, templates: dict) -> None:
+    """Restart services as needed based on file changes."""
 
 
 def _update_default_config(snap: Snap) -> None:
@@ -544,19 +601,20 @@ def configure(snap: Snap) -> None:
     context = _context_compat(context)
     logging.info(context)
 
-    for config_file, template in TEMPLATES.items():
-        template = _get_template(snap, template)
-        config_file = snap.paths.common / config_file
-        logging.info(f"Rendering {config_file}")
-        try:
-            output = template.render(context)
-            with open(config_file, "w+") as f:
-                f.write(output)
-        except:  # noqa
-            logging.exception(
-                "An error occurred when attempting to render the mysql configuration file."
-            )
-            raise
+    with RestartOnChange(snap, TEMPLATES):
+        for config_file, template in TEMPLATES.items():
+            template = _get_template(snap, template.get("template"))
+            config_file = snap.paths.common / config_file
+            logging.info(f"Rendering {config_file}")
+            try:
+                output = template.render(context)
+                with open(config_file, "w+") as f:
+                    f.write(output)
+            except:  # noqa
+                logging.exception(
+                    "An error occurred when attempting to render the mysql configuration file."
+                )
+                raise
 
     _configure_ovn_base(snap)
     _configure_ovn_external_networking(snap)
