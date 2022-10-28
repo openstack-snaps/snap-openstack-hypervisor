@@ -271,10 +271,6 @@ class RestartOnChange(object):
             services[service].start(enable=True)
 
 
-def restart_on_chnage(snap: Snap, templates: dict) -> None:
-    """Restart services as needed based on file changes."""
-
-
 def _update_default_config(snap: Snap) -> None:
     """Add any missing default configuration keys.
 
