@@ -74,9 +74,9 @@ class NetworkConfig(BaseModel):
     dns_domain = Field(alias="dns-domain", default="openstack.local")
     dns_servers: IPvAnyAddress = Field(alias="dns-servers", default="8.8.8.8")
     ovn_sb_connection: str = Field(alias="ovn-sb-connection", default="tcp:127.0.0.1:6642")
-    ovn_key: Optional[str] = Field(Alias="ovn-key")
-    ovn_cert: Optional[str] = Field(Alias="ovn-cert")
-    ovn_cacert: Optional[str] = Field(Alias="ovn-cacert")
+    ovn_key: Optional[str] = Field(alias="ovn-key")
+    ovn_cert: Optional[str] = Field(alias="ovn-cert")
+    ovn_cacert: Optional[str] = Field(alias="ovn-cacert")
     enable_gateway: bool = Field(alias="enable-gateway", default=False)
     ip_address: Optional[IPvAnyAddress] = Field(alias="network.ip-address")
 
