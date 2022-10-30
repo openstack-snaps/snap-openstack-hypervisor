@@ -252,7 +252,7 @@ class RestartOnChange(object):
     def __exit__(self, exc_type, exc_value, exc_traceback):
         """Restart any services where hashes have changed."""
         restart_services = []
-        for file, hash in self.file_hash.items():
+        for file in self.files:
             full_path = self.snap.paths.common / file
             if full_path.exists():
                 if file not in self.file_hash:
@@ -260,8 +260,8 @@ class RestartOnChange(object):
                     continue
                 with open(full_path, "rb") as f:
                     new_hash = hashlib.sha256(f.read()).hexdigest()
-                if new_hash != hash:
-                    restart_services.extend(self.files[file].get("services", []))
+                    if new_hash != self.file_hash[file]:
+                        restart_services.extend(self.files[file].get("services", []))
 
         restart_services = set(restart_services)
         services = self.snap.services.list()
