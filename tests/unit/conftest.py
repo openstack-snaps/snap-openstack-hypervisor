@@ -15,7 +15,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from snaphelpers import Snap, SnapConfig
+from snaphelpers import Snap, SnapConfig, SnapServices
 
 
 @pytest.fixture
@@ -41,6 +41,7 @@ def snap_env():
 def snap(snap_env):
     snap = Snap(environ=snap_env)
     snap.config = MagicMock(SnapConfig)
+    snap.services = MagicMock(SnapServices)
     yield snap
 
 
