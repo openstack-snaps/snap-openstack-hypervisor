@@ -29,9 +29,11 @@ from typing import Any, Dict
 from jinja2 import Environment, FileSystemLoader, Template
 from snaphelpers import Snap
 
+from openstack_hypervisor import utils
 from openstack_hypervisor.log import setup_logging
 
 UNSET = ""
+LOCAL_IP_BY_DEFAULT_ROUTE = utils.get_local_ip_by_default_route()
 
 DEFAULT_CONFIG = {
     # Keystone
@@ -49,7 +51,7 @@ DEFAULT_CONFIG = {
     "compute.cpu-mode": "host-model",
     "compute.virt-type": "auto",
     "compute.cpu-models": UNSET,
-    "compute.spice-proxy-address": UNSET,
+    "compute.spice-proxy-address": LOCAL_IP_BY_DEFAULT_ROUTE,
     # Neutron
     "network.physnet-name": "physnet1",
     "network.external-bridge": "br-ex",
@@ -60,11 +62,11 @@ DEFAULT_CONFIG = {
     "network.ovn-key": UNSET,
     "network.ovn-cacert": UNSET,
     "network.enable-gateway": False,
-    "network.ip-address": UNSET,
+    "network.ip-address": LOCAL_IP_BY_DEFAULT_ROUTE,
     # General
     "logging.debug": False,
     "node.fqdn": socket.getfqdn(),
-    "node.ip-address": UNSET,
+    "node.ip-address": LOCAL_IP_BY_DEFAULT_ROUTE,
     # TLS
 }
 
