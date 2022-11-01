@@ -27,46 +27,12 @@ from pathlib import Path
 from typing import Any, Dict
 
 from jinja2 import Environment, FileSystemLoader, Template
+from netifaces import AF_INET, gateways, ifaddresses
 from snaphelpers import Snap
 
 from openstack_hypervisor.log import setup_logging
 
 UNSET = ""
-
-DEFAULT_CONFIG = {
-    # Keystone
-    "identity.auth-url": "http://localhost:5000/v3",
-    "identity.username": UNSET,
-    "identity.password": UNSET,
-    # keystone-k8s defaults
-    "identity.user-domain-name": "service_domain",
-    "identity.project-name": "services",
-    "identity.project-domain-name": "service_domain",
-    "identity.region-name": "RegionOne",
-    # Messaging
-    "rabbitmq.url": "rabbit://localhost:5672",
-    # Nova
-    "compute.cpu-mode": "host-model",
-    "compute.virt-type": "auto",
-    "compute.cpu-models": UNSET,
-    "compute.spice-proxy-address": UNSET,
-    # Neutron
-    "network.physnet-name": "physnet1",
-    "network.external-bridge": "br-ex",
-    "network.dns-domain": "openstack.local",
-    "network.dns-servers": "8.8.8.8",
-    "network.ovn-sb-connection": "tcp:127.0.0.1:6642",
-    "network.ovn-cert": UNSET,
-    "network.ovn-key": UNSET,
-    "network.ovn-cacert": UNSET,
-    "network.enable-gateway": False,
-    "network.ip-address": UNSET,
-    # General
-    "logging.debug": False,
-    "node.fqdn": socket.getfqdn(),
-    "node.ip-address": UNSET,
-    # TLS
-}
 
 SECRETS = ["credentials.ovn-metadata-proxy-shared-secret"]
 
@@ -152,6 +118,58 @@ def _setup_secrets(snap: Snap) -> None:
             snap.config.set({secret: _generate_secret()})
 
 
+def _get_local_ip_by_default_route() -> str:
+    """Get IP address of host associated with default gateway."""
+    interface = "lo"
+    ip = "127.0.0.1"
+
+    # TOCHK: Gathering only IPv4
+    if "default" in gateways():
+        interface = gateways()["default"][AF_INET][1]
+
+    ip_list = ifaddresses(interface)[AF_INET]
+    if len(ip_list) > 0 and "addr" in ip_list[0]:
+        ip = ip_list[0]["addr"]
+
+    return ip
+
+
+DEFAULT_CONFIG = {
+    # Keystone
+    "identity.auth-url": "http://localhost:5000/v3",
+    "identity.username": UNSET,
+    "identity.password": UNSET,
+    # keystone-k8s defaults
+    "identity.user-domain-name": "service_domain",
+    "identity.project-name": "services",
+    "identity.project-domain-name": "service_domain",
+    "identity.region-name": "RegionOne",
+    # Messaging
+    "rabbitmq.url": "rabbit://localhost:5672",
+    # Nova
+    "compute.cpu-mode": "host-model",
+    "compute.virt-type": "auto",
+    "compute.cpu-models": UNSET,
+    "compute.spice-proxy-address": _get_local_ip_by_default_route,  # noqa: F821
+    # Neutron
+    "network.physnet-name": "physnet1",
+    "network.external-bridge": "br-ex",
+    "network.dns-domain": "openstack.local",
+    "network.dns-servers": "8.8.8.8",
+    "network.ovn-sb-connection": "tcp:127.0.0.1:6642",
+    "network.ovn-cert": UNSET,
+    "network.ovn-key": UNSET,
+    "network.ovn-cacert": UNSET,
+    "network.enable-gateway": False,
+    "network.ip-address": _get_local_ip_by_default_route,  # noqa: F821
+    # General
+    "logging.debug": False,
+    "node.fqdn": socket.getfqdn,
+    "node.ip-address": _get_local_ip_by_default_route,  # noqa: F821
+    # TLS
+}
+
+
 def install(snap: Snap) -> None:
     """Runs the 'install' hook for the snap.
 
@@ -164,9 +182,8 @@ def install(snap: Snap) -> None:
     """
     setup_logging(snap.paths.common / "hooks.log")
     logging.info("Running install hook")
-    logging.info(f"Setting default config: {DEFAULT_CONFIG}")
-    snap.config.set(DEFAULT_CONFIG)
     _mkdirs(snap)
+    _update_default_config(snap)
 
 
 def _get_template(snap: Snap, template: str) -> Template:
@@ -280,9 +297,16 @@ def _update_default_config(snap: Snap) -> None:
     """
     option_keys = set([k.split(".")[0] for k in DEFAULT_CONFIG.keys()])
     current_options = snap.config.get_options(*option_keys)
+    missing_options = {}
     for option, default in DEFAULT_CONFIG.items():
         if option not in current_options:
-            snap.config.set({option: default})
+            if callable(default):
+                default = default()
+            missing_options.update({option: default})
+
+    if missing_options:
+        logging.info(f"Setting config: {missing_options}")
+        snap.config.set(missing_options)
 
 
 def _configure_ovn_base(snap: Snap) -> None:
