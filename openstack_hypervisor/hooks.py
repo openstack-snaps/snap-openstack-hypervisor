@@ -67,7 +67,6 @@ COMMON_DIRS = [
     # run
     Path("run/ovn"),
     Path("run/openvswitch"),
-    Path("run/hypervisor-config"),
     # lock
     Path("lock"),
     # Instances
@@ -78,6 +77,7 @@ DATA_DIRS = [
     Path("lib/libvirt/images"),
     Path("lib/ovn"),
     Path("lib/neutron"),
+    Path("run/hypervisor-config"),
 ]
 
 
