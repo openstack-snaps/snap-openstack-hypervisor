@@ -233,7 +233,7 @@ apps:
       - microstack-support
 
   hypervisor-config-service:
-    command: 'bin/gunicorn openstack_hypervisor.api:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind unix:$SNAP_COMMON/run/hypervisor-config/unix.socket'
+    command: 'bin/gunicorn openstack_hypervisor.api:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind unix:$SNAP_DATA/run/hypervisor-config/unix.socket'
     restart-condition: on-failure
     daemon: simple
     slots:
@@ -245,7 +245,7 @@ apps:
     install-mode: enable
     sockets:
       unix:
-        listen-stream: $SNAP_COMMON/run/hypervisor-config/unix.socket
+        listen-stream: $SNAP_DATA/run/hypervisor-config/unix.socket
         socket-mode: 0666
 
 parts:
@@ -593,9 +593,10 @@ parts:
 slots:
   hypervisor-config:
     interface: content
+    content: openstack-hypervisor
     source:
       write:
-        - $SNAP_COMMON/run/hypervisor-config
+        - $SNAP_DATA/run/hypervisor-config
 
 hooks:
   install:
