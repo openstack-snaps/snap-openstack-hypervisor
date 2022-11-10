@@ -14,6 +14,7 @@
 
 import base64
 import binascii
+import errno
 import hashlib
 import json
 import logging
@@ -28,11 +29,19 @@ from typing import Any, Dict
 
 from jinja2 import Environment, FileSystemLoader, Template
 from netifaces import AF_INET, gateways, ifaddresses
+from pyroute2 import IPRoute
+from pyroute2.netlink.exceptions import NetlinkError
 from snaphelpers import Snap
 
 from openstack_hypervisor.log import setup_logging
 
 UNSET = ""
+
+# Any configuration read from snap will be a string and
+# an empty string value for IPvAnyNetwork pydantic Field
+# throws an error. So making 0.0.0.0/0 as kind of Empty
+# or None for IPvAnyNetwork.
+IPVANYNETWORK_UNSET = "0.0.0.0/0"
 
 SECRETS = ["credentials.ovn-metadata-proxy-shared-secret"]
 
@@ -154,6 +163,7 @@ DEFAULT_CONFIG = {
     # Neutron
     "network.physnet-name": "physnet1",
     "network.external-bridge": "br-ex",
+    "network.external-network-cidr": IPVANYNETWORK_UNSET,
     "network.dns-domain": "openstack.local",
     "network.dns-servers": "8.8.8.8",
     "network.ovn-sb-connection": "tcp:127.0.0.1:6642",
@@ -309,6 +319,113 @@ def _update_default_config(snap: Snap) -> None:
         snap.config.set(missing_options)
 
 
+def _add_ip_to_interface(interface: str, cidr: str) -> None:
+    """Add IP to interface and set link to up.
+
+    Deletes any existing IPs on the interface and set IP
+    of the interface to cidr.
+
+    :param interface: interface name
+    :type interface: str
+    :param cidr: network address
+    :type cidr: str
+    :return: None
+    """
+    logging.debug(f"Adding  ip {cidr} to {interface}")
+    ipr = IPRoute()
+    dev = ipr.link_lookup(ifname=interface)[0]
+    ip_mask = cidr.split("/")
+    try:
+        ipr.addr("add", index=dev, address=ip_mask[0], mask=int(ip_mask[1]))
+    except NetlinkError as e:
+        if not e.code == errno.EEXIST:
+            raise e
+
+    ipr.link("set", index=dev, state="up")
+
+
+def _delete_ips_from_interface(interface: str) -> None:
+    """Remove all IPs from interface."""
+    logging.debug(f"Resetting interface {interface}")
+    ipr = IPRoute()
+    dev = ipr.link_lookup(ifname=interface)[0]
+    ipr.flush_addr(index=dev)
+
+
+def _add_iptable_postrouting_rule(cidr: str, comment: str) -> None:
+    """Add postrouting iptable rule.
+
+    Check for any preexisting postrouting iptable rules
+    added by openstack-hypervisor and delete them.
+    Add new postiprouting iptable rule to allow traffic
+    for cidr network.
+    """
+    logging.debug(f"Adding postrouting iptable rule for {cidr}")
+    subprocess.check_call(
+        [
+            "iptables-legacy",
+            "-w",
+            "-t",
+            "nat",
+            "-A",
+            "POSTROUTING",
+            "-s",
+            cidr,
+            "-d",
+            cidr,
+            "-j",
+            "MASQUERADE",
+            "-m",
+            "comment",
+            "--comment",
+            comment,
+        ]
+    )
+
+
+def _delete_iptable_postrouting_rule(comment: str) -> None:
+    """Delete postrouting iptable rules based on comment."""
+    logging.debug("Resetting iptable rules added by openstack-hypervisor")
+    if not comment:
+        return
+
+    try:
+        cmd = [
+            "iptables-legacy",
+            "-t",
+            "nat",
+            "-n",
+            "-v",
+            "-L",
+            "POSTROUTING",
+            "--line-numbers",
+        ]
+        process = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        iptable_rules = process.stdout.strip()
+
+        line_numbers = [
+            line.split(" ")[0] for line in iptable_rules.split("\n") if comment in line
+        ]
+
+        # Delete line numbers in descending order
+        # If a lower numbered line number is deleted, iptables
+        # changes lines numbers of high numbered rules.
+        line_numbers.sort(reverse=True)
+        for number in line_numbers:
+            delete_rule_cmd = [
+                "iptables-legacy",
+                "-t",
+                "nat",
+                "-D",
+                "POSTROUTING",
+                number,
+            ]
+            logging.debug(f"Deleting iptable rule: {delete_rule_cmd}")
+            subprocess.check_call(delete_rule_cmd)
+    except subprocess.CalledProcessError as e:
+        logging.info(f"Error in deletion of IPtable rule: {e.stderr}")
+
+
 def _configure_ovn_base(snap: Snap) -> None:
     """Configure OVS/OVN.
 
@@ -403,6 +520,18 @@ def _configure_ovn_external_networking(snap: Snap) -> None:
             f"external_ids:ovn-bridge-mappings={physnet_name}:{external_bridge}",
         ]
     )
+
+    external_network_cidr = snap.config.get("network.external-network-cidr")
+    comment = "openstack-hypervisor external network rule"
+    # Consider 0.0.0.0/0 as IPvAnyNetwork None
+    if external_network_cidr == IPVANYNETWORK_UNSET:
+        logging.info(f"Resetting external bridge {external_bridge} configuration")
+        _delete_ips_from_interface(external_bridge)
+        _delete_iptable_postrouting_rule(comment)
+    else:
+        logging.info(f"configuring external bridge {external_bridge}")
+        _add_ip_to_interface(external_bridge, external_network_cidr)
+        _add_iptable_postrouting_rule(external_network_cidr, comment)
 
     if snap.config.get("network.enable-gateway"):
         logging.info("Enabling OVS as external gateway")
