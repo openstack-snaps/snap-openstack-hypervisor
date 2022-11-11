@@ -31,7 +31,9 @@ class TestHooks:
         hooks._get_template(snap, "foo.bar")
         mock_fs_loader.assert_called_once_with(searchpath=str(snap.paths.snap / "templates"))
 
-    def test_configure_hook(self, mocker, snap, os_makedirs, check_call):
+    def test_configure_hook(
+        self, mocker, snap, os_makedirs, check_call, link_lookup, split, addr, link
+    ):
         """Tests the configure hook."""
         mock_template = mocker.Mock()
         mocker.patch.object(hooks, "_get_template", return_value=mock_template)

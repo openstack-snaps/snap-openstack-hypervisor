@@ -6,4 +6,5 @@ fastapi
 gunicorn
 netifaces
 pydantic
+pyroute2
 uvicorn[standard]

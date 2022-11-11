@@ -241,6 +241,8 @@ apps:
     plugs:
       - network
       - network-bind
+      - network-control
+      - firewall-control
       - microstack-support
     install-mode: enable
     sockets:
@@ -602,7 +604,11 @@ hooks:
   install:
     plugs: [ network, microstack-support]
   configure:
-    plugs: [ network, microstack-support]
+    plugs:
+      - network
+      - network-control
+      - firewall-control
+      - microstack-support
   connect-slot-hypervisor-config:
     plugs:
       - network

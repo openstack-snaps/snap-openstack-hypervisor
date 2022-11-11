@@ -55,3 +55,26 @@ def os_makedirs():
 def check_call():
     with patch("subprocess.check_call") as p:
         yield p
+
+
+@pytest.fixture
+def link_lookup():
+    with patch("pyroute2.IPRoute.link_lookup") as p:
+        yield p
+
+
+@pytest.fixture
+def split():
+    yield "1.2.3.4/24"
+
+
+@pytest.fixture
+def addr():
+    with patch("pyroute2.IPRoute.addr") as p:
+        yield p
+
+
+@pytest.fixture
+def link():
+    with patch("pyroute2.IPRoute.link") as p:
+        yield p
