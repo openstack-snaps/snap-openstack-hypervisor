@@ -16,6 +16,7 @@ import base64
 import binascii
 import errno
 import hashlib
+import ipaddress
 import json
 import logging
 import os
@@ -163,7 +164,7 @@ DEFAULT_CONFIG = {
     # Neutron
     "network.physnet-name": "physnet1",
     "network.external-bridge": "br-ex",
-    "network.external-network-cidr": IPVANYNETWORK_UNSET,
+    "network.external-bridge-address": IPVANYNETWORK_UNSET,
     "network.dns-domain": "openstack.local",
     "network.dns-servers": "8.8.8.8",
     "network.ovn-sb-connection": "tcp:127.0.0.1:6642",
@@ -521,17 +522,18 @@ def _configure_ovn_external_networking(snap: Snap) -> None:
         ]
     )
 
-    external_network_cidr = snap.config.get("network.external-network-cidr")
+    external_bridge_address = snap.config.get("network.external-bridge-address")
     comment = "openstack-hypervisor external network rule"
     # Consider 0.0.0.0/0 as IPvAnyNetwork None
-    if external_network_cidr == IPVANYNETWORK_UNSET:
+    if external_bridge_address == IPVANYNETWORK_UNSET:
         logging.info(f"Resetting external bridge {external_bridge} configuration")
         _delete_ips_from_interface(external_bridge)
         _delete_iptable_postrouting_rule(comment)
     else:
         logging.info(f"configuring external bridge {external_bridge}")
-        _add_ip_to_interface(external_bridge, external_network_cidr)
-        _add_iptable_postrouting_rule(external_network_cidr, comment)
+        _add_ip_to_interface(external_bridge, external_bridge_address)
+        external_network = ipaddress.ip_interface(external_bridge_address).network
+        _add_iptable_postrouting_rule(str(external_network), comment)
 
     if snap.config.get("network.enable-gateway"):
         logging.info("Enabling OVS as external gateway")
