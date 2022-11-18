@@ -32,7 +32,7 @@ class TestHooks:
         mock_fs_loader.assert_called_once_with(searchpath=str(snap.paths.snap / "templates"))
 
     def test_configure_hook(
-        self, mocker, snap, os_makedirs, check_call, link_lookup, split, addr, link
+        self, mocker, snap, os_makedirs, check_call, link_lookup, split, addr, link, ip_interface
     ):
         """Tests the configure hook."""
         mock_template = mocker.Mock()

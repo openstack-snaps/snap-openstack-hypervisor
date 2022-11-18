@@ -78,3 +78,9 @@ def addr():
 def link():
     with patch("pyroute2.IPRoute.link") as p:
         yield p
+
+
+@pytest.fixture
+def ip_interface():
+    with patch("ipaddress.ip_interface") as p:
+        yield p
