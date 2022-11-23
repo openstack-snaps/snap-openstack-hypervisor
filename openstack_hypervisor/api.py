@@ -121,3 +121,11 @@ async def update_node(config: model.NodeConfig):
 async def update_logging(config: model.LoggingConfig):
     """Updates logging section settings."""
     return _update_settings("logging", config)
+
+
+@app.post("/reset")
+async def reset_config():
+    """Reset all configs to default."""
+    config = {k: (v() if callable(v) else v) for k, v in hooks.DEFAULT_CONFIG.items()}
+    snap.config.set(config)
+    hooks.configure(snap)
