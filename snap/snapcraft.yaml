@@ -1,6 +1,6 @@
 name: openstack-hypervisor
-version: xena
-base: core20
+version: yoga
+base: core22
 summary: OpenStack Hypervisor
 description: |
   The OpenStack Hypervisor snap provides the requires components
@@ -11,13 +11,7 @@ environment:
   LC_ALL: C
   PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$SNAP/usr/local/bin:$SNAP/usr/local/sbin:$PATH
   # Standard library components must have priority in module name resolution: https://storyboard.openstack.org/#!/story/2007806
-  PYTHONPATH: $PYTHONPATH:$SNAP/usr/lib/python3.8:$SNAP/lib/python3.8/site-packages:$SNAP/usr/lib/python3/dist-packages:$SNAP/usr/lib/python3.8/site-packages
-  # /usr/lib/$SNAPCRAFT_ARCH_TRIPLET not added to LD_LIBRARY_PATH by default
-  # Causes:
-  # CVE-2020-27348: A potentially empty LD_LIBRARY_PATH has been set for environment in '.'.
-  # The current working directory will be added to the library path if empty.
-  # This can cause unexpected libraries to be loaded.
-  LD_LIBRARY_PATH: $LD_LIBRARY_PATH:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET
+  PYTHONPATH: $PYTHONPATH:$SNAP/usr/lib/python3.10:$SNAP/lib/python3.10/site-packages:$SNAP/usr/lib/python3/dist-packages:$SNAP/usr/lib/python3.8/site-packages
   # OVN runtime configuration
   OVN_LOGDIR: $SNAP_COMMON/log/ovn
   OVN_RUNDIR: $SNAP_COMMON/run/ovn
@@ -43,12 +37,12 @@ system-usernames:
 layout:
   /usr/local/bin:
     symlink: $SNAP/usr/local/bin
-  /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/ceph:
-    symlink: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/ceph
-  /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu:
-    symlink: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qemu
-  /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pulseaudio:
-    symlink: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pulseaudio
+  /usr/lib/$CRAFT_ARCH_TRIPLET/ceph:
+    symlink: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET/ceph
+  /usr/lib/$CRAFT_ARCH_TRIPLET/qemu:
+    symlink: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET/qemu
+  /usr/lib/$CRAFT_ARCH_TRIPLET/pulseaudio:
+    symlink: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET/pulseaudio
   /usr/lib/libvirt:
     symlink: $SNAP/usr/lib/libvirt
   /usr/share/libvirt:
@@ -251,44 +245,37 @@ apps:
         socket-mode: 0666
 
 parts:
-  # Add Ubuntu Cloud Archive sources.
-  # Allows us to fetch things such as updated libvirt.
-  uca-sources:
+  kvm-support:
     plugin: nil
-    build-packages:
-      - ubuntu-cloud-keyring
-      - software-properties-common
-      - dpkg-dev  # We'll need to manipulate sources later.
-    override-pull: |
-      add-apt-repository -s cloud-archive:xena
-      apt-key update
-      apt update
-      snapcraftctl pull
+    stage-packages:
+    - on amd64:
+      - msr-tools
 
   qemu:
     source: https://git.launchpad.net/ubuntu/+source/qemu
     source-type: git
-    source-branch: ubuntu/focal-updates
+    source-branch: ubuntu/jammy-updates
     source-depth: 1
     plugin: autotools
-    after:
-      - uca-sources
-    build-environment:
-      # Workaround for https://bugs.launchpad.net/snapcraft/+bug/1860766
-      - LD_LIBRARY_PATH: $SNAPCRAFT_PART_INSTALL/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/ceph:$SNAPCRAFT_PART_INSTALL/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pulseaudio:$LD_LIBRARY_PATH
     stage-packages:
       - seabios
       - ipxe-qemu
+      # UEFI Support, required on arm64
+      - on arm64:
+        - qemu-efi-aarch64
+        - qemu-efi-arm
+      - on amd64:
+        - ovmf
       - freeglut3 # provides libglut.so.3
       - libnuma1
       - libspice-server1
       - libasound2
       - libasyncns0
       - libbluetooth3
-      - libboost-iostreams1.71.0
-      - libboost-random1.71.0
-      - libboost-system1.71.0
-      - libboost-thread1.71.0
+      - libboost-iostreams1.74.0
+      - libboost-random1.74.0
+      - libboost-system1.74.0
+      - libboost-thread1.74.0
       - libcaca0
       - libfdt1
       - libflac8
@@ -328,82 +315,76 @@ parts:
       - libheimntlm0-heimdal
       - libhx509-5-heimdal
       - libkrb5-26-heimdal
-      - libldap-2.4-2
+      - libldap-2.5-0
       - libnghttp2-14
       - libpsl5
       - libroken18-heimdal
       - librtmp1
       - libssh-4
       - libwind0-heimdal
-      # UEFI Support, required on arm64
-      - on arm64:
-        - qemu-efi-aarch64
-        - qemu-efi-arm
-      - on amd64:
-        - ovmf
+      - libjack0
+      - libepoxy0
+      - libcacard0
+      - libnettle8
     build-packages:
+      - bison
+      - flex
       - acpica-tools
       - libaio-dev
+      - libjack-dev
+      - libpulse-dev
       - libasound2-dev
-      - libattr1-dev
-      - libbluetooth-dev
-      - libcap-dev
       - libcap-ng-dev
-      - libcurl4-gnutls-dev
       - libfdt-dev
       - libiscsi-dev
-      - libncurses5-dev
-      - try: [libnuma-dev]
+      - libepoxy-dev
+      - libdrm-dev
+      - libnuma-dev
+      - libcacard-dev
       - libpixman-1-dev
-      - libpulse-dev
-      - librados-dev
       - librbd-dev
       - libsasl2-dev
-      - libsdl1.2-dev
-      - try: [libspice-server-dev, libspice-protocol-dev]
+      - libspice-server-dev
       - libusb-1.0-0-dev
       - libusbredirparser-dev
-      - linux-libc-dev
-      - uuid-dev
-      - xfslibs-dev
-      - libjpeg-dev
+      - libzstd-dev
       - zlib1g-dev
+      - libudev-dev
+      - libjpeg-dev
       - libpng-dev
-      - wget
-      - dpkg-dev
+      - libpmem-dev
+      - nettle-dev
       - gcc
+      - meson
+      - ninja-build
     autotools-configure-parameters:
+      - --enable-system
+      - --target-list=x86_64-softmmu,aarch64-softmmu
       - --disable-blobs
-      - --prefix=/usr
-      - --localstatedir=/var/snap/$SNAPCRAFT_PROJECT_NAME/common
-      - --sysconfdir=/var/snap/$SNAPCRAFT_PROJECT_NAME/common
-      - --firmwarepath=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/share/seabios:/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/share/qemu:/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/lib/ipxe/qemu
       - --disable-user
       - --disable-linux-user
       - --disable-bsd-user
       - --disable-vhost-user
-      - --enable-system
-      - --target-list=x86_64-softmmu,aarch64-softmmu
       - --disable-xen
+      - --prefix=/usr
+      - --localstatedir=/var/snap/$CRAFT_PROJECT_NAME/common
+      - --sysconfdir=/var/snap/$CRAFT_PROJECT_NAME/common
+      - --firmwarepath=/snap/$CRAFT_PROJECT_NAME/current/usr/share/seabios:/snap/$CRAFT_PROJECT_NAME/current/usr/share/seabios/optionrom:/snap/$CRAFT_PROJECT_NAME/current/usr/share/qemu:/snap/$CRAFT_PROJECT_NAME/current/usr/lib/ipxe/qemu
     override-build: |
       dpkg-source --before-build .
-      snapcraftctl build
+      craftctl default
 
-  kvm-support:
-    plugin: nil
-    stage-packages:
-    - try: [msr-tools]
+      # Install keymaps as the qemu build process doe not!
+      install -Dp -m0644 -t $CRAFT_PART_INSTALL/usr/share/qemu/keymaps $(ls -1 $CRAFT_PART_SRC/pc-bios/keymaps/* | fgrep -v /meson.build)
 
   libvirt:
     source: https://git.launchpad.net/ubuntu/+source/libvirt
     source-type: git
-    source-branch: ubuntu/focal-updates
-    source-subdir: build-subdir
+    source-branch: ubuntu/jammy-updates
     source-depth: 1
     after:
       - qemu
-      - uca-sources
-    plugin: autotools
+    plugin: meson
     build-packages:
     - libxml2-dev
     - libxml-libxml-perl
@@ -422,7 +403,7 @@ parts:
     - libnl-route-3-dev
     - libxml2-utils
     - uuid-dev
-    - try: [libnuma-dev]
+    - libnuma-dev
     - python-all
     - python-six
     - wget
@@ -433,6 +414,8 @@ parts:
     - open-iscsi
     - python3-docutils
     - gettext
+    - meson
+    - ninja-build
     stage-packages:
     - dmidecode
     - dnsmasq
@@ -440,7 +423,7 @@ parts:
     - genisoimage
     - libxml2
     - libyajl2
-    - try: [libnuma1]
+    - libnuma1
     - libcurl3-gnutls
     - libpcap0.8
     - libpciaccess0
@@ -449,96 +432,87 @@ parts:
     - ebtables
     - apparmor
     - libapparmor1
-    autotools-configure-parameters:
-    - --with-qemu
-    - --without-bhyve
-    - --without-xen
-    - --without-openvz
-    - --without-vmware
-    - --without-xenapi
-    - --without-esx
-    - --without-hyperv
-    - --without-lxc
-    - --without-vz
-    - --without-vbox
-    - --without-uml
-    - --without-sasl
-    - --without-storage-sheepdog
-    - --without-storage-rbd
-    - --without-storage-lvm
-    - --without-selinux
-    - --without-docs
-    - --with-chrdev-lock-files=/run/lock
-    - --with-storage-iscsi
-    # TODO(dmitriis): re-enable once a workaround is found for subprocess' RPATH handling.
-    # - --with-apparmor
-    - --without-apparmor
-    # NOTE: the install prefix will be different from the actual location on snap installation.
-    - --prefix=/usr
-    - --bindir=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/bin
-    - --sbindir=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/sbin
-    - --libexecdir=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/libexec
-    - --libdir=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/lib
-    - --includedir=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/include
-    - --oldincludedir=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/include
-    - --localstatedir=/var/snap/$SNAPCRAFT_PROJECT_NAME/common
-    - --sysconfdir=/var/snap/$SNAPCRAFT_PROJECT_NAME/common/etc/
-    - DNSMASQ=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/sbin/dnsmasq
-    - DMIDECODE=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/sbin/dmidecode
-    - OVSVSCTL=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/local/bin/ovs-vsctl
-    - IPTABLES_PATH=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/sbin/iptables-legacy
-    - IP6TABLES_PATH=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/sbin/ip6tables-legacy
-    - EBTABLES_PATH=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/sbin/ebtables-legacy
-    build-environment:
-      # Libraries under /snap/$SNAPCRAFT_PROJECT_NAME/current/usr/lib/x86_64-linux-gnu are not added to the
-      # runpath by default. This is OK for parent processes which get LD_LIBRARY_PATH set properly but not
-      # for the child processes they spawn since the environment variables are not passed down to children by default after execve(2).
-      # `readelf -d /snap/microstack/current/usr/libexec/virt-aa-helper` should return something like:
-      # (RUNPATH)            Library runpath: [/snap/microstack/current/usr/lib:/snap/microstack/current/usr/lib/x86_64-linux-gnu:...]
-      - LDFLAGS: '$LDFLAGS -Wl,-rpath=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/lib -Wl,-rpath=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/lib/$SNAPCRAFT_ARCH_TRIPLET -Wl,-rpath=/snap/$SNAPCRAFT_PROJECT_NAME/current/lib -Wl,-rpath=/lib/$SNAPCRAFT_ARCH_TRIPLET -Wl,-rpath=/lib/'
+    meson-parameters:
+    # Hypervisors
+    - -Ddriver_qemu=enabled
+    - -Ddriver_bhyve=disabled
+    - -Ddriver_openvz=disabled
+    - -Ddriver_vmware=disabled
+    - -Ddriver_esx=disabled
+    - -Ddriver_hyperv=disabled
+    - -Ddriver_lxc=disabled
+    - -Ddriver_vz=disabled
+    - -Ddriver_vbox=disabled
+    # QEMU options
+    - -Dqemu_user=root
+    - -Dqemu_group=root
+    # Security Features
+    - -Dsasl=disabled
+    - -Dselinux=disabled
+    - -Dsecdriver_selinux=disabled
+    - -Dapparmor=disabled
+    - -Dapparmor_profiles=disabled
+    - -Dsecdriver_apparmor=disabled
+    # Storage Drivers
+    - -Dstorage_iscsi=enabled
+    - -Dstorage_rbd=enabled
+    - -Dstorage_sheepdog=disabled
+    - -Dstorage_lvm=disabled
+    - -Dstorage_vstorage=disabled
+    - -Dstorage_zfs=disabled
+    - -Dstorage_scsi=disabled
+    - -Dglusterfs=disabled
+    # General
+    - -Ddocs=disabled
+    - -Dbuildtype=release
+    - -Dstrip=true
+    - -Dtests=disabled
+    # Installation
+    - -Dchrdev_lock_files=/run/lock
+    - -Dprefix=/snap/$CRAFT_PROJECT_NAME/current/usr
+    - -Dbindir=/snap/$CRAFT_PROJECT_NAME/current/usr/bin
+    - -Dsbindir=/snap/$CRAFT_PROJECT_NAME/current/usr/sbin
+    - -Dlibexecdir=/snap/$CRAFT_PROJECT_NAME/current/usr/libexec
+    - -Dlibdir=/snap/$CRAFT_PROJECT_NAME/current/usr/lib
+    - -Dincludedir=/snap/$CRAFT_PROJECT_NAME/current/usr/include
+    - -Dlocalstatedir=/var/snap/$CRAFT_PROJECT_NAME/common
+    - -Dsysconfdir=/var/snap/$CRAFT_PROJECT_NAME/common/etc
     override-build: |
-      dpkg-source --before-build .
-      logger `echo -n $PWD`
-      # Prevent libvirt from attempting to run setgroups
+      dpkg-source --before-build $CRAFT_PART_SRC
       echo "
 
-      #undef HAVE_SETGROUPS
-      #undef HAVE_SETEUID
-      " >> config-post.h
+      /* Disable SETGROUPS usage */
+      #undef WITH_SETGROUPS
+      #define WITH_SETGROUPS 0
 
-      # See https://bugs.launchpad.net/snapcraft/+bug/1882255
-      mkdir build-subdir
-      cd build-subdir
-      ../autogen.sh
+      /*
+       * Ensure that some compile time detected binary locations are
+       * overridden for the runtime locations in the installed snap
+       */
+      #undef DNSMASQ
+      #define DNSMASQ \"/snap/$CRAFT_PROJECT_NAME/current/usr/sbin/dnsmasq\"
+      #undef DMIDECODE
+      #define DMIDECODE \"/snap/$CRAFT_PROJECT_NAME/current/usr/sbin/dmidecode\"
+      #undef OVSVSCTL
+      #define OVSVSCTL \"/snap/$CRAFT_PROJECT_NAME/current/usr/local/bin/ovs-vsctl\"
+      #undef IPTABLES
+      #define IPTABLES \"/snap/$CRAFT_PROJECT_NAME/current/usr/sbin/iptables-legacy\"
+      #undef IP6TABLES
+      #define IP6TABLES \"/snap/$CRAFT_PROJECT_NAME/current/usr/sbin/ip6tables-legacy\"
+      #undef EBTABLES
+      #define EBTABLES \"/snap/$CRAFT_PROJECT_NAME/current/usr/sbin/ebtables-legacy\"
+      " >> $CRAFT_PART_SRC/config.h
 
-      echo "#!/bin/sh
-      exit 0
-      " >> autogen.sh
-      chmod +x autogen.sh
-      ln -s ../configure configure
-      cd ..
-      # end of a workaround for LP: #1882255
-      # Build
-      snapcraftctl build
+      craftctl default
 
-      rsync --remove-source-files -arhvP $SNAPCRAFT_PART_INSTALL/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/* $SNAPCRAFT_PART_INSTALL/usr/
-      rm -rf $SNAPCRAFT_PART_INSTALL/snap/$SNAPCRAFT_PROJECT_NAME/current/usr
-
-      # Copy the generated apparmor template into the install dir
-      # it will be used by libvirt at runtime.
-      mkdir -p $SNAPCRAFT_PART_INSTALL/etc/apparmor.d/libvirt/
-      mkdir -p $SNAPCRAFT_PART_INSTALL/etc/apparmor.d/abstractions
-      cp $SNAPCRAFT_PART_BUILD/src/security/apparmor/TEMPLATE.qemu $SNAPCRAFT_PART_INSTALL/etc/apparmor.d/libvirt/TEMPLATE.qemu
-      cp $SNAPCRAFT_PART_BUILD/src/security/apparmor/libvirt-qemu $SNAPCRAFT_PART_INSTALL/etc/apparmor.d/abstractions/libvirt-qemu
-      # While LXC is not used, the AppArmor code errors out if the template for LXC is not there.
-      cp $SNAPCRAFT_PART_BUILD/src/security/apparmor/TEMPLATE.lxc $SNAPCRAFT_PART_INSTALL/etc/apparmor.d/libvirt/TEMPLATE.lxc
-      cp $SNAPCRAFT_PART_BUILD/src/security/apparmor/libvirt-lxc $SNAPCRAFT_PART_INSTALL/etc/apparmor.d/abstractions/libvirt-lxc
+      rsync --remove-source-files -arhvP $CRAFT_PART_INSTALL/snap/$CRAFT_PROJECT_NAME/current/usr/* $CRAFT_PART_INSTALL/usr/
+      rm -rf $CRAFT_PART_INSTALL/snap/$CRAFT_PROJECT_NAME/current/usr
 
   templates:
     source: templates/
     plugin: dump
     organize:
-      '*': templates/  
+      '*': templates/
 
   bin:
     source: bin/
@@ -548,8 +522,6 @@ parts:
 
   networking:
     plugin: nil
-    after:
-      - uca-sources
     stage-packages:
       - openvswitch-switch
       - openvswitch-switch-dpdk
@@ -560,8 +532,6 @@ parts:
 
   openstack:
     plugin: nil
-    after:
-      - uca-sources
     stage-packages:
       - python3-nova
       - python3-neutron
@@ -569,18 +539,21 @@ parts:
       - python3-os-brick
       - python3-distutils
       - python3-systemd
+      - python3-tz
       - haproxy
       - util-linux
     override-build: |
-      snapcraftctl build
+      craftctl default
       # NOTE:
       # purge libvirt0 provided components to avoid
       # conflicts with the libvirt part provided versions
-      rm -rf $SNAPCRAFT_PART_INSTALL/usr/share/libvirt
-      rm -rf $SNAPCRAFT_PART_INSTALL/usr/lib/*/libvirt*
+      rm -rf $CRAFT_PART_INSTALL/usr/share/libvirt
+      rm -rf $CRAFT_PART_INSTALL/usr/lib/*/libvirt*
       # purge some dangling symlinks
-      rm -rf $SNAPCRAFT_PART_INSTALL/usr/lib/python3/dist-packages/netaddr/eui/iab.txt
-      rm -rf $SNAPCRAFT_PART_INSTALL/usr/lib/python3/dist-packages/netaddr/eui/oui.txt
+      rm -rf $CRAFT_PART_INSTALL/usr/lib/python3/dist-packages/netaddr/eui/iab.txt
+      rm -rf $CRAFT_PART_INSTALL/usr/lib/python3/dist-packages/netaddr/eui/oui.txt
+      # drop some docutils binaries to avoid libvirt part build confusion
+      rm -rf $CRAFT_PART_INSTALL/usr/bin/rst2*
 
   snap-hooks:
     plugin: python
