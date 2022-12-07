@@ -34,6 +34,7 @@ def snap_env():
         "SNAP_USER_COMMON": "",
         "SNAP_USER_DATA": "",
         "SNAP_VERSION": "1.2.3",
+        "SNAP_REAL_HOME": "/home/ubuntu",
     }
 
 
