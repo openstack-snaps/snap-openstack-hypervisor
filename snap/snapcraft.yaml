@@ -11,7 +11,7 @@ environment:
   LC_ALL: C
   PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$SNAP/usr/local/bin:$SNAP/usr/local/sbin:$PATH
   # Standard library components must have priority in module name resolution: https://storyboard.openstack.org/#!/story/2007806
-  PYTHONPATH: $PYTHONPATH:$SNAP/usr/lib/python3.10:$SNAP/lib/python3.10/site-packages:$SNAP/usr/lib/python3/dist-packages:$SNAP/usr/lib/python3.8/site-packages
+  PYTHONPATH: $PYTHONPATH:$SNAP/usr/lib/python3.10:$SNAP/usr/lib/python3.10/site-packages:$SNAP/usr/lib/python3/dist-packages:$SNAP/lib/python3.10:$SNAP/lib/python3.10/site-packages
   # OVN runtime configuration
   OVN_LOGDIR: $SNAP_COMMON/log/ovn
   OVN_RUNDIR: $SNAP_COMMON/run/ovn
@@ -555,15 +555,18 @@ parts:
       # drop some docutils binaries to avoid libvirt part build confusion
       rm -rf $CRAFT_PART_INSTALL/usr/bin/rst2*
 
-  snap-hooks:
+  openstack-hypervisor:
     plugin: python
-    build-environment:
-      # Workaround to ensure rebuild of snap work
-      - PATH: /usr/bin:$PATH
-      - PYTHONPATH: ''
     source: .
+    build-packages:
+      - git
+    python-requirements:
+      - requirements.txt
     after:
       - openstack
+    override-build: |
+      craftctl default
+      snap-helpers write-hooks
 
 slots:
   hypervisor-config:
