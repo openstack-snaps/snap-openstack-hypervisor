@@ -43,6 +43,21 @@ async def root():
     return {"version": "0.1"}
 
 
+@app.get("/health")
+async def health():
+    """Handle requests for health status.
+
+    A dictionary is returned, the key 'ready' indicates whether the
+    hypervisor is up and functional.
+    """
+    service_status = snap.services.list()
+    health = {
+        "ready": all([v._info.active for v in service_status.values()]),
+        "service_detail": service_status,
+    }
+    return health
+
+
 @app.get("/settings")
 async def settings():
     """Handle requests for settings.
