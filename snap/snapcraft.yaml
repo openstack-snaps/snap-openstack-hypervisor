@@ -227,7 +227,7 @@ apps:
       - microstack-support
 
   hypervisor-config-service:
-    command: 'bin/gunicorn openstack_hypervisor.api:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind unix:$SNAP_DATA/run/hypervisor-config/unix.socket'
+    command: 'bin/gunicorn openstack_hypervisor.api:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --timeout 120 --bind unix:$SNAP_DATA/run/hypervisor-config/unix.socket'
     restart-condition: on-failure
     daemon: simple
     slots:
