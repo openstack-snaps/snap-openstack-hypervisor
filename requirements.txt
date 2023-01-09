@@ -9,3 +9,6 @@ gunicorn
 netifaces
 pydantic
 uvicorn[standard]
+
+# Matched version from focal to ensure snap-helpers correct writes hooks
+pyroute2==0.5.9

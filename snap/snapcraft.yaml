@@ -587,10 +587,15 @@ parts:
     build-environment:
       # Workaround to ensure rebuild of snap work
       - PATH: /usr/bin:$PATH
-      - PYTHONPATH: ''
+      - PYTHONPATH: $SNAPCRAFT_PART_INSTALL/lib/python3.8/site-packages
+    requirements:
+      - requirements.txt
     source: .
     after:
       - openstack
+    override-build: |
+      snapcraftctl build
+      $SNAPCRAFT_PART_INSTALL/bin/snap-helpers write-hooks
 
 slots:
   hypervisor-config:
