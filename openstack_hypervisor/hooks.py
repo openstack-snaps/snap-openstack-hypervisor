@@ -33,6 +33,7 @@ from netifaces import AF_INET, gateways, ifaddresses
 from pyroute2 import IPRoute
 from pyroute2.netlink.exceptions import NetlinkError
 from snaphelpers import Snap
+from snaphelpers._conf import UnknownConfigKey
 
 from openstack_hypervisor.log import setup_logging
 
@@ -313,7 +314,8 @@ def _update_default_config(snap: Snap) -> None:
         if option not in current_options:
             if callable(default):
                 default = default()
-            missing_options.update({option: default})
+            if default != UNSET:
+                missing_options.update({option: default})
 
     if missing_options:
         logging.info(f"Setting config: {missing_options}")
@@ -584,9 +586,13 @@ def _configure_ovn_tls(snap: Snap) -> None:
         except (binascii.Error, TypeError):
             pass
 
-    ovn_cert = _parse_tls("network.ovn-cert")
-    ovn_cacert = _parse_tls("network.ovn-cacert")
-    ovn_key = _parse_tls("network.ovn-key")
+    try:
+        ovn_cert = _parse_tls("network.ovn-cert")
+        ovn_cacert = _parse_tls("network.ovn-cacert")
+        ovn_key = _parse_tls("network.ovn-key")
+    except UnknownConfigKey:
+        logging.info("OVN TLS configuration incomplete, skipping.")
+        return
     if not all(
         (
             ovn_cert,

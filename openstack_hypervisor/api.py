@@ -142,5 +142,9 @@ async def update_logging(config: model.LoggingConfig):
 async def reset_config():
     """Reset all configs to default."""
     config = {k: (v() if callable(v) else v) for k, v in hooks.DEFAULT_CONFIG.items()}
+    unset_keys = [k for k, v in config.items() if v == hooks.UNSET]
     snap.config.set(config)
+    # Replace with snap.config.unset when https://github.com/albertodonato/snap-helpers/pull/9
+    # lands
+    snap.config._snapctl.config_unset(*unset_keys)
     hooks.configure(snap)
