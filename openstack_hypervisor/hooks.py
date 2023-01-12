@@ -26,7 +26,7 @@ import stat
 import string
 import subprocess
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from jinja2 import Environment, FileSystemLoader, Template
 from netifaces import AF_INET, gateways, ifaddresses
@@ -182,6 +182,21 @@ DEFAULT_CONFIG = {
 }
 
 
+# Required config can be a section like "identity" in which case all keys must
+# be set or a single key like "identity.password".
+REQUIRED_CONFIG = {
+    "nova-compute": ["identity.password", "identity.username", "identity"],
+    "nova-api-metadata": [
+        "identity.password",
+        "identity.username",
+        "identity",
+        "rabbitmq.url",
+        "network",
+    ],
+    "neutron-ovn-metadata-agent": ["credentials", "network", "node", "network.ovn-key"],
+}
+
+
 def install(snap: Snap) -> None:
     """Runs the 'install' hook for the snap.
 
@@ -264,10 +279,11 @@ TEMPLATES = {
 class RestartOnChange(object):
     """Restart services based on file context changes."""
 
-    def __init__(self, snap: Snap, files: dict):
+    def __init__(self, snap: Snap, files: dict, exclude_services: list = None):
         self.snap = snap
         self.files = files
         self.file_hash = {}
+        self.exclude_services = exclude_services or []
 
     def __enter__(self):
         """Record all file hashes on entry."""
@@ -292,7 +308,7 @@ class RestartOnChange(object):
                     if new_hash != self.file_hash[file]:
                         restart_services.extend(self.files[file].get("services", []))
 
-        restart_services = set(restart_services)
+        restart_services = set([s for s in restart_services if s not in self.exclude_services])
         services = self.snap.services.list()
         for service in restart_services:
             logging.info(f"Restarting {service}")
@@ -719,6 +735,45 @@ def _configure_kvm(snap) -> None:
         snap.config.set({"compute.virt-type": "qemu"})
 
 
+def services() -> List[str]:
+    """List of services managed by hooks."""
+    return sorted(list(set([w for v in TEMPLATES.values() for w in v.get("services", [])])))
+
+
+def _section_complete(section: str, context: dict) -> bool:
+    """Check section is present in context and has no unset keys."""
+    if not context.get(section):
+        return False
+    return len([v for v in context[section].values() if v == UNSET]) == 0
+
+
+def _check_config_present(key: str, context: dict) -> bool:
+    """Check key or section is in context and set."""
+    present = False
+    try:
+        if len(key.split(".")) == 1:
+            if _section_complete(key, context):
+                present = True
+        else:
+            section, skey = key.split(".")
+            if context[section][skey] != UNSET:
+                present = True
+    except KeyError:
+        present = False
+    return present
+
+
+def _services_not_ready(context: dict) -> List[str]:
+    """Check if any services are missing keys they need to function."""
+    logging.warning(f"Context {context}")
+    not_ready = []
+    for svc in services():
+        for required in REQUIRED_CONFIG.get(svc, []):
+            if not _check_config_present(required, context):
+                not_ready.append(svc)
+    return sorted(list(set(not_ready)))
+
+
 def configure(snap: Snap) -> None:
     """Runs the `configure` hook for the snap.
 
@@ -757,8 +812,13 @@ def configure(snap: Snap) -> None:
     )
     context = _context_compat(context)
     logging.info(context)
+    exclude_services = _services_not_ready(context)
+    logging.warning(f"{exclude_services} are missing required config, stopping")
+    services = snap.services.list()
+    for service in exclude_services:
+        services[service].stop()
 
-    with RestartOnChange(snap, TEMPLATES):
+    with RestartOnChange(snap, TEMPLATES, exclude_services):
         for config_file, template in TEMPLATES.items():
             template = _get_template(snap, template.get("template"))
             config_file = snap.paths.common / config_file
