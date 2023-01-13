@@ -185,7 +185,7 @@ DEFAULT_CONFIG = {
 # Required config can be a section like "identity" in which case all keys must
 # be set or a single key like "identity.password".
 REQUIRED_CONFIG = {
-    "nova-compute": ["identity.password", "identity.username", "identity"],
+    "nova-compute": ["identity.password", "identity.username", "identity", "rabbitmq.url"],
     "nova-api-metadata": [
         "identity.password",
         "identity.username",

@@ -93,6 +93,7 @@ class TestHooks:
         assert hooks._services_not_ready(config) == [
             "neutron-ovn-metadata-agent",
             "nova-api-metadata",
+            "nova-compute",
         ]
         config["rabbitmq"] = {"url": "rabbit://localhost:5672"}
         config["node"] = {"fqdn": "myhost.maas"}
