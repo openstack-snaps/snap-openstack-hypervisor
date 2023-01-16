@@ -103,9 +103,9 @@ class TestHooks:
         ]
         config["network"] = {
             "external-bridge-address": "10.0.0.10",
-            "ovn-cert": "cert",
-            "ovn-key": "key",
-            "ovn-cacert": "cacert",
+            "ovn_cert": "cert",
+            "ovn_key": "key",
+            "ovn_cacert": "cacert",
         }
         assert hooks._services_not_ready(config) == ["neutron-ovn-metadata-agent"]
         config["credentials"] = {"ovn_metadata_proxy_shared_secret": "secret"}

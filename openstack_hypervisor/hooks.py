@@ -193,7 +193,7 @@ REQUIRED_CONFIG = {
         "rabbitmq.url",
         "network",
     ],
-    "neutron-ovn-metadata-agent": ["credentials", "network", "node", "network.ovn-key"],
+    "neutron-ovn-metadata-agent": ["credentials", "network", "node", "network.ovn_key"],
 }
 
 
