@@ -53,3 +53,60 @@ class TestHooks:
 
         with pytest.raises(FileNotFoundError):
             hooks.configure(snap)
+
+    def test_services(self):
+        """Test getting a list of managed services."""
+        assert hooks.services() == [
+            "libvirtd",
+            "neutron-ovn-metadata-agent",
+            "nova-api-metadata",
+            "nova-compute",
+            "virtlogd",
+        ]
+
+    def test_section_complete(self):
+        assert hooks._section_complete("identity", {"identity": {"password": "foo"}})
+        assert hooks._section_complete(
+            "identity", {"identity": {"username": "user", "password": "foo"}}
+        )
+        assert not hooks._section_complete(
+            "identity", {"identity": {"username": "user", "password": ""}}
+        )
+        assert not hooks._section_complete("identity", {"identity": {"password": ""}})
+        assert not hooks._section_complete("identity", {"rabbitmq": {"url": "rabbit://sss"}})
+
+    def test_check_config_present(self):
+        assert hooks._check_config_present("identity.password", {"identity": {"password": "foo"}})
+        assert hooks._check_config_present("identity", {"identity": {"password": "foo"}})
+        assert not hooks._check_config_present(
+            "identity.password", {"rabbitmq": {"url": "rabbit://sss"}}
+        )
+
+    def test_services_not_ready(self, snap):
+        config = {}
+        assert hooks._services_not_ready(config) == [
+            "neutron-ovn-metadata-agent",
+            "nova-api-metadata",
+            "nova-compute",
+        ]
+        config["identity"] = {"username": "user", "password": "pass"}
+        assert hooks._services_not_ready(config) == [
+            "neutron-ovn-metadata-agent",
+            "nova-api-metadata",
+            "nova-compute",
+        ]
+        config["rabbitmq"] = {"url": "rabbit://localhost:5672"}
+        config["node"] = {"fqdn": "myhost.maas"}
+        assert hooks._services_not_ready(config) == [
+            "neutron-ovn-metadata-agent",
+            "nova-api-metadata",
+        ]
+        config["network"] = {
+            "external-bridge-address": "10.0.0.10",
+            "ovn-cert": "cert",
+            "ovn-key": "key",
+            "ovn-cacert": "cacert",
+        }
+        assert hooks._services_not_ready(config) == ["neutron-ovn-metadata-agent"]
+        config["credentials"] = {"ovn_metadata_proxy_shared_secret": "secret"}
+        assert hooks._services_not_ready(config) == []
