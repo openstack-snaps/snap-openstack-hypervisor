@@ -18,7 +18,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from snaphelpers import Snap
 
-from openstack_hypervisor import hooks, model
+from openstack_hypervisor import hooks, manage_guests, model
 
 app = FastAPI()
 snap = Snap()
@@ -148,3 +148,4 @@ async def reset_config():
     # lands
     snap.config._snapctl.config_unset(*unset_keys)
     hooks.configure(snap)
+    manage_guests.delete_openstack_guests()

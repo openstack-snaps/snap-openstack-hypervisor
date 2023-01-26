@@ -1,0 +1,171 @@
+<domain type='kvm' id='1'>
+  <name>instance-00000001</name>
+  <uuid>8622c3dc-77bb-4af5-bd90-cf76b0222d94</uuid>
+  <metadata>
+    <nova:instance xmlns:nova="http://openstack.org/xmlns/libvirt/nova/1.1">
+      <nova:package version="25.0.1"/>
+      <nova:name>test-server</nova:name>
+      <nova:creationTime>2023-01-25 14:40:42</nova:creationTime>
+      <nova:flavor name="m1.small">
+        <nova:memory>2048</nova:memory>
+        <nova:disk>30</nova:disk>
+        <nova:swap>0</nova:swap>
+        <nova:ephemeral>0</nova:ephemeral>
+        <nova:vcpus>1</nova:vcpus>
+      </nova:flavor>
+      <nova:owner>
+        <nova:user uuid="3c2961cdc7834a9a9ded55c8fd11f1e3">demo</nova:user>
+        <nova:project uuid="2fac77ff815a4c438c3d0e7f160c2620">demo</nova:project>
+      </nova:owner>
+      <nova:root type="image" uuid="3071957e-1bc9-412a-8c72-f7ed90ce834b"/>
+      <nova:ports>
+        <nova:port uuid="71e333af-88eb-47fb-ad5c-054583b97654">
+          <nova:ip type="fixed" address="192.168.122.128" ipVersion="4"/>
+        </nova:port>
+      </nova:ports>
+    </nova:instance>
+  </metadata>
+  <memory unit='KiB'>2097152</memory>
+  <currentMemory unit='KiB'>2097152</currentMemory>
+  <vcpu placement='static'>1</vcpu>
+  <sysinfo type='smbios'>
+    <system>
+      <entry name='manufacturer'>OpenStack Foundation</entry>
+      <entry name='product'>OpenStack Nova</entry>
+      <entry name='version'>25.0.1</entry>
+      <entry name='serial'>8622c3dc-77bb-4af5-bd90-cf76b0222d94</entry>
+      <entry name='uuid'>8622c3dc-77bb-4af5-bd90-cf76b0222d94</entry>
+      <entry name='family'>Virtual Machine</entry>
+    </system>
+  </sysinfo>
+  <os>
+    <type arch='x86_64' machine='pc-i440fx-6.2'>hvm</type>
+    <boot dev='hd'/>
+    <smbios mode='sysinfo'/>
+  </os>
+  <features>
+    <acpi/>
+    <apic/>
+    <vmcoreinfo state='on'/>
+  </features>
+  <cpu mode='custom' match='exact' check='full'>
+    <model fallback='forbid'>EPYC-Milan</model>
+    <vendor>AMD</vendor>
+    <topology sockets='1' dies='1' cores='1' threads='1'/>
+    <feature policy='require' name='x2apic'/>
+    <feature policy='require' name='tsc-deadline'/>
+    <feature policy='require' name='hypervisor'/>
+    <feature policy='require' name='tsc_adjust'/>
+    <feature policy='require' name='vaes'/>
+    <feature policy='require' name='vpclmulqdq'/>
+    <feature policy='require' name='spec-ctrl'/>
+    <feature policy='require' name='stibp'/>
+    <feature policy='require' name='arch-capabilities'/>
+    <feature policy='require' name='ssbd'/>
+    <feature policy='require' name='cmp_legacy'/>
+    <feature policy='require' name='virt-ssbd'/>
+    <feature policy='require' name='rdctl-no'/>
+    <feature policy='require' name='skip-l1dfl-vmentry'/>
+    <feature policy='require' name='mds-no'/>
+    <feature policy='require' name='pschange-mc-no'/>
+    <feature policy='disable' name='pcid'/>
+    <feature policy='require' name='topoext'/>
+  </cpu>
+  <clock offset='utc'>
+    <timer name='pit' tickpolicy='delay'/>
+    <timer name='rtc' tickpolicy='catchup'/>
+    <timer name='hpet' present='no'/>
+  </clock>
+  <on_poweroff>destroy</on_poweroff>
+  <on_reboot>restart</on_reboot>
+  <on_crash>destroy</on_crash>
+  <devices>
+    <emulator>/snap/openstack-hypervisor/72/usr/bin/qemu-system-x86_64</emulator>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2' cache='none'/>
+      <source file='/var/snap/openstack-hypervisor/common/lib/nova/instances/8622c3dc-77bb-4af5-bd90-cf76b0222d94/disk' index='1'/>
+      <backingStore type='file' index='2'>
+        <format type='raw'/>
+        <source file='/var/snap/openstack-hypervisor/common/lib/nova/instances/_base/ce991b6e880de0b7e2691e54003627a7b2fd9ba3'/>
+        <backingStore/>
+      </backingStore>
+      <target dev='vda' bus='virtio'/>
+      <alias name='virtio-disk0'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x05' function='0x0'/>
+    </disk>
+    <controller type='usb' index='0' model='piix3-uhci'>
+      <alias name='usb'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x01' function='0x2'/>
+    </controller>
+    <controller type='pci' index='0' model='pci-root'>
+      <alias name='pci.0'/>
+    </controller>
+    <controller type='virtio-serial' index='0'>
+      <alias name='virtio-serial0'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x04' function='0x0'/>
+    </controller>
+    <interface type='ethernet'>
+      <mac address='fa:16:3e:d3:c1:4c'/>
+      <target dev='tap71e333af-88'/>
+      <model type='virtio'/>
+      <mtu size='1442'/>
+      <alias name='net0'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
+    </interface>
+    <serial type='pty'>
+      <source path='/dev/pts/0'/>
+      <log file='/var/snap/openstack-hypervisor/common/lib/nova/instances/8622c3dc-77bb-4af5-bd90-cf76b0222d94/console.log' append='off'/>
+      <target type='isa-serial' port='0'>
+        <model name='isa-serial'/>
+      </target>
+      <alias name='serial0'/>
+    </serial>
+    <console type='pty' tty='/dev/pts/0'>
+      <source path='/dev/pts/0'/>
+      <log file='/var/snap/openstack-hypervisor/common/lib/nova/instances/8622c3dc-77bb-4af5-bd90-cf76b0222d94/console.log' append='off'/>
+      <target type='serial' port='0'/>
+      <alias name='serial0'/>
+    </console>
+    <channel type='spicevmc'>
+      <target type='virtio' name='com.redhat.spice.0' state='disconnected'/>
+      <alias name='channel0'/>
+      <address type='virtio-serial' controller='0' bus='0' port='1'/>
+    </channel>
+    <input type='tablet' bus='usb'>
+      <alias name='input0'/>
+      <address type='usb' bus='0' port='1'/>
+    </input>
+    <input type='mouse' bus='ps2'>
+      <alias name='input1'/>
+    </input>
+    <input type='keyboard' bus='ps2'>
+      <alias name='input2'/>
+    </input>
+    <graphics type='vnc' port='5900' autoport='yes' listen='127.0.0.1'>
+      <listen type='address' address='127.0.0.1'/>
+    </graphics>
+    <graphics type='spice' port='5901' autoport='yes' listen='10.177.200.72'>
+      <listen type='address' address='10.177.200.72'/>
+    </graphics>
+    <audio id='1' type='spice'/>
+    <video>
+      <model type='qxl' ram='65536' vram='65536' vgamem='16384' heads='1' primary='yes'/>
+      <alias name='video0'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x0'/>
+    </video>
+    <memballoon model='virtio'>
+      <stats period='10'/>
+      <alias name='balloon0'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x06' function='0x0'/>
+    </memballoon>
+    <rng model='virtio'>
+      <backend model='random'>/dev/urandom</backend>
+      <alias name='rng0'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x07' function='0x0'/>
+    </rng>
+  </devices>
+  <seclabel type='dynamic' model='dac' relabel='yes'>
+    <label>+0:+0</label>
+    <imagelabel>+0:+0</imagelabel>
+  </seclabel>
+</domain>
