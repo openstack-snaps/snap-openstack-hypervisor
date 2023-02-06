@@ -59,6 +59,12 @@ def check_call():
 
 
 @pytest.fixture
+def check_output():
+    with patch("subprocess.check_output") as p:
+        yield p
+
+
+@pytest.fixture
 def link_lookup():
     with patch("pyroute2.IPRoute.link_lookup") as p:
         yield p

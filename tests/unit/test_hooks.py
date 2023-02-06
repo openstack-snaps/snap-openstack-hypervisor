@@ -110,3 +110,28 @@ class TestHooks:
         assert hooks._services_not_ready(config) == ["neutron-ovn-metadata-agent"]
         config["credentials"] = {"ovn_metadata_proxy_shared_secret": "secret"}
         assert hooks._services_not_ready(config) == []
+
+    def test_list_bridge_ifaces(self, check_output):
+        check_output.return_value = b"int1\nint2\n"
+        assert hooks.list_bridge_ifaces("br1") == ["int1", "int2"]
+        check_output.assert_called_once_with(["ovs-vsctl", "--retry", "list-ifaces", "br1"])
+
+    def test_add_interface_to_bridge(self, check_call, check_output):
+        check_output.return_value = b"int1\nint2\n"
+        hooks.add_interface_to_bridge("br1", "int3")
+        check_call.assert_called_once_with(["ovs-vsctl", "--retry", "add-port", "br1", "int3"])
+
+    def test_add_interface_to_bridge_noop(self, check_call, check_output):
+        check_output.return_value = b"int1\nint2\n"
+        hooks.add_interface_to_bridge("br1", "int2")
+        assert not check_call.called
+
+    def test_del_interface_from_bridge(self, check_call, check_output):
+        check_output.return_value = b"int1\nint2\n"
+        hooks.del_interface_from_bridge("br1", "int2")
+        check_call.assert_called_once_with(["ovs-vsctl", "--retry", "del-port", "br1", "int2"])
+
+    def test_del_interface_from_bridge_noop(self, check_call, check_output):
+        check_output.return_value = b"int1\nint2\n"
+        hooks.del_interface_from_bridge("br1", "int3")
+        assert not check_call.called

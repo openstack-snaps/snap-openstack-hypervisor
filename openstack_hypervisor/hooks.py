@@ -174,6 +174,7 @@ DEFAULT_CONFIG = {
     "network.ovn-cacert": UNSET,
     "network.enable-gateway": False,
     "network.ip-address": _get_local_ip_by_default_route,  # noqa: F821
+    "network.gateway-nic": UNSET,
     # General
     "logging.debug": False,
     "node.fqdn": socket.getfqdn,
@@ -499,6 +500,34 @@ def _configure_ovn_base(snap: Snap) -> None:
     )
 
 
+def list_bridge_ifaces(bridge_name: str) -> list:
+    """Return a list of interfaces attached to given bridge."""
+    ifaces = (
+        subprocess.check_output(["ovs-vsctl", "--retry", "list-ifaces", bridge_name])
+        .decode()
+        .split()
+    )
+    return sorted(ifaces)
+
+
+def add_interface_to_bridge(external_bridge: str, gateway_nic: str) -> None:
+    """Add an interface to a given bridge."""
+    if gateway_nic in list_bridge_ifaces(external_bridge):
+        logging.warning(f"Interface {gateway_nic} already connected to {external_bridge}")
+    else:
+        logging.warning(f"Adding interface {gateway_nic} to {external_bridge}")
+        subprocess.check_call(["ovs-vsctl", "--retry", "add-port", external_bridge, gateway_nic])
+
+
+def del_interface_from_bridge(external_bridge: str, gateway_nic: str) -> None:
+    """Remove an interface from  a given bridge."""
+    if gateway_nic in list_bridge_ifaces(external_bridge):
+        logging.warning(f"Removing interface {gateway_nic} from {external_bridge}")
+        subprocess.check_call(["ovs-vsctl", "--retry", "del-port", external_bridge, gateway_nic])
+    else:
+        logging.warning(f"Interface {gateway_nic} not connected to {external_bridge}")
+
+
 def _configure_ovn_external_networking(snap: Snap) -> None:
     """Configure OVS/OVN external networking.
 
@@ -511,6 +540,10 @@ def _configure_ovn_external_networking(snap: Snap) -> None:
     # Deal with wiring of hardware port to each bridge.
     external_bridge = snap.config.get("network.external-bridge")
     physnet_name = snap.config.get("network.physnet-name")
+    try:
+        gateway_nic = snap.config.get("network.gateway-nic")
+    except UnknownConfigKey:
+        gateway_nic = None
     if not external_bridge and physnet_name:
         logging.info("OVN external networking not configured, skipping.")
         return
@@ -547,6 +580,8 @@ def _configure_ovn_external_networking(snap: Snap) -> None:
         logging.info(f"Resetting external bridge {external_bridge} configuration")
         _delete_ips_from_interface(external_bridge)
         _delete_iptable_postrouting_rule(comment)
+        if gateway_nic:
+            add_interface_to_bridge(external_bridge, gateway_nic)
     else:
         logging.info(f"configuring external bridge {external_bridge}")
         _add_ip_to_interface(external_bridge, external_bridge_address)
