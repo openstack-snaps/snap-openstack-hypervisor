@@ -30,8 +30,8 @@ from typing import Any, Dict, List
 
 from jinja2 import Environment, FileSystemLoader, Template
 from netifaces import AF_INET, gateways, ifaddresses
+from pr2modules.netlink.exceptions import NetlinkError
 from pyroute2 import IPRoute
-from pyroute2.netlink.exceptions import NetlinkError
 from snaphelpers import Snap
 from snaphelpers._conf import UnknownConfigKey
 
