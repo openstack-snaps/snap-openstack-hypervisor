@@ -12,10 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
 from snaphelpers import Snap, SnapConfig, SnapServices
+
+libvirt_mock = MagicMock()
+libvirt_mock.VIR_DOMAIN_RUNNING = 1
+libvirt_mock.VIR_DOMAIN_SHUTDOWN = 5
+sys.modules["libvirt"] = libvirt_mock
 
 
 @pytest.fixture
@@ -59,6 +65,12 @@ def check_call():
 
 
 @pytest.fixture
+def check_output():
+    with patch("subprocess.check_output") as p:
+        yield p
+
+
+@pytest.fixture
 def link_lookup():
     with patch("pyroute2.IPRoute.link_lookup") as p:
         yield p
@@ -85,3 +97,42 @@ def link():
 def ip_interface():
     with patch("ipaddress.ip_interface") as p:
         yield p
+
+
+@pytest.fixture
+def sleep():
+    with patch("time.sleep") as p:
+        yield p
+
+
+@pytest.fixture
+def libvirt():
+    yield libvirt_mock
+
+
+def mock_vm(name, xml, active):
+    vm = MagicMock()
+    vm.name = name
+    vm.isActive.return_value = active
+
+    def shutdown():
+        vm.isActive.return_value = False
+
+    vm.destroy.side_effect = shutdown
+    vm.XMLDesc.return_value = xml
+    return vm
+
+
+@pytest.fixture
+def vms():
+    with open("tests/unit/virsh_openstack.xml", "r") as f:
+        os_xml = f.read()
+    with open("tests/unit/virsh_non_openstack.xml", "r") as f:
+        non_os_xml = f.read()
+
+    vms = {
+        "vm1": mock_vm("vm1", os_xml, True),
+        "vm2": mock_vm("vm2", non_os_xml, True),
+        "vm3": mock_vm("vm3", os_xml, False),
+    }
+    yield vms
