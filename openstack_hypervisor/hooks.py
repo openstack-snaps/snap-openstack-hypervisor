@@ -584,9 +584,7 @@ def _ensure_single_nic_on_bridge(external_bridge: str, external_nic: str) -> Non
         _add_interface_to_bridge(external_bridge, external_nic)
     for p in external_ports:
         if p != external_nic:
-            logging.debug(
-                f"Removing additional extranal ports {external_ports} from {external_bridge}"
-            )
+            logging.debug(f"Removing additional external port {p} from {external_bridge}")
             _del_interface_from_bridge(external_bridge, p)
 
 
