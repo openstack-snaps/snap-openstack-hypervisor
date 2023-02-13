@@ -174,7 +174,7 @@ DEFAULT_CONFIG = {
     "network.ovn-cacert": UNSET,
     "network.enable-gateway": False,
     "network.ip-address": _get_local_ip_by_default_route,  # noqa: F821
-    "network.gateway-nic": UNSET,
+    "network.external-nic": UNSET,
     # General
     "logging.debug": False,
     "node.fqdn": socket.getfqdn,
@@ -500,8 +500,11 @@ def _configure_ovn_base(snap: Snap) -> None:
     )
 
 
-def list_bridge_ifaces(bridge_name: str) -> list:
-    """Return a list of interfaces attached to given bridge."""
+def _list_bridge_ifaces(bridge_name: str) -> list:
+    """Return a list of interfaces attached to given bridge.
+
+    :param bridge_name: Name of bridge.
+    """
     ifaces = (
         subprocess.check_output(["ovs-vsctl", "--retry", "list-ifaces", bridge_name])
         .decode()
@@ -510,22 +513,90 @@ def list_bridge_ifaces(bridge_name: str) -> list:
     return sorted(ifaces)
 
 
-def add_interface_to_bridge(external_bridge: str, gateway_nic: str) -> None:
-    """Add an interface to a given bridge."""
-    if gateway_nic in list_bridge_ifaces(external_bridge):
-        logging.warning(f"Interface {gateway_nic} already connected to {external_bridge}")
+def _add_interface_to_bridge(external_bridge: str, external_nic: str) -> None:
+    """Add an interface to a given bridge.
+
+    :param bridge_name: Name of bridge.
+    :param external_nic: Name of nic.
+    """
+    if external_nic in _list_bridge_ifaces(external_bridge):
+        logging.warning(f"Interface {external_nic} already connected to {external_bridge}")
     else:
-        logging.warning(f"Adding interface {gateway_nic} to {external_bridge}")
-        subprocess.check_call(["ovs-vsctl", "--retry", "add-port", external_bridge, gateway_nic])
+        logging.warning(f"Adding interface {external_nic} to {external_bridge}")
+        cmd = [
+            "ovs-vsctl",
+            "--retry",
+            "add-port",
+            external_bridge,
+            external_nic,
+            "--",
+            "set",
+            "Port",
+            external_nic,
+            "external-ids:microstack-function=ext-port",
+        ]
+        subprocess.check_call(cmd)
 
 
-def del_interface_from_bridge(external_bridge: str, gateway_nic: str) -> None:
-    """Remove an interface from  a given bridge."""
-    if gateway_nic in list_bridge_ifaces(external_bridge):
-        logging.warning(f"Removing interface {gateway_nic} from {external_bridge}")
-        subprocess.check_call(["ovs-vsctl", "--retry", "del-port", external_bridge, gateway_nic])
+def _del_interface_from_bridge(external_bridge: str, external_nic: str) -> None:
+    """Remove an interface from  a given bridge.
+
+    :param bridge_name: Name of bridge.
+    :param external_nic: Name of nic.
+    """
+    if external_nic in _list_bridge_ifaces(external_bridge):
+        logging.warning(f"Removing interface {external_nic} from {external_bridge}")
+        subprocess.check_call(["ovs-vsctl", "--retry", "del-port", external_bridge, external_nic])
     else:
-        logging.warning(f"Interface {gateway_nic} not connected to {external_bridge}")
+        logging.warning(f"Interface {external_nic} not connected to {external_bridge}")
+
+
+def _get_external_ports_on_bridge(bridge: str) -> list:
+    """Get microstack managed external port on bridge.
+
+    :param bridge_name: Name of bridge.
+    """
+    cmd = [
+        "ovs-vsctl",
+        "-f",
+        "json",
+        "find",
+        "Port",
+        "external-ids:microstack-function=ext-port",
+    ]
+    output = json.loads(subprocess.check_output(cmd))
+    name_idx = output["headings"].index("name")
+    external_nics = [r[name_idx] for r in output["data"]]
+    bridge_ifaces = _list_bridge_ifaces(bridge)
+    return [i for i in bridge_ifaces if i in external_nics]
+
+
+def _ensure_single_nic_on_bridge(external_bridge: str, external_nic: str) -> None:
+    """Ensure nic is attached to bridge and no other microk8s managed nics.
+
+    :param bridge_name: Name of bridge.
+    :param external_nic: Name of nic.
+    """
+    external_ports = _get_external_ports_on_bridge(external_bridge)
+    if external_nic in external_ports:
+        logging.debug(f"{external_nic} already attached to {external_bridge}")
+    else:
+        _add_interface_to_bridge(external_bridge, external_nic)
+    for p in external_ports:
+        if p != external_nic:
+            logging.debug(
+                f"Removing additional extranal ports {external_ports} from {external_bridge}"
+            )
+            _del_interface_from_bridge(external_bridge, p)
+
+
+def _del_external_nics_from_bridge(external_bridge: str) -> None:
+    """Delete all microk8s managed external nics from bridge.
+
+    :param bridge_name: Name of bridge.
+    """
+    for p in _get_external_ports_on_bridge(external_bridge):
+        _del_interface_from_bridge(external_bridge, p)
 
 
 def _configure_ovn_external_networking(snap: Snap) -> None:
@@ -541,9 +612,9 @@ def _configure_ovn_external_networking(snap: Snap) -> None:
     external_bridge = snap.config.get("network.external-bridge")
     physnet_name = snap.config.get("network.physnet-name")
     try:
-        gateway_nic = snap.config.get("network.gateway-nic")
+        external_nic = snap.config.get("network.external-nic")
     except UnknownConfigKey:
-        gateway_nic = None
+        external_nic = None
     if not external_bridge and physnet_name:
         logging.info("OVN external networking not configured, skipping.")
         return
@@ -580,8 +651,12 @@ def _configure_ovn_external_networking(snap: Snap) -> None:
         logging.info(f"Resetting external bridge {external_bridge} configuration")
         _delete_ips_from_interface(external_bridge)
         _delete_iptable_postrouting_rule(comment)
-        if gateway_nic:
-            add_interface_to_bridge(external_bridge, gateway_nic)
+        if external_nic:
+            logging.info(f"Adding {external_nic} to {external_bridge}")
+            _ensure_single_nic_on_bridge(external_bridge, external_nic)
+        else:
+            logging.info(f"Removing nics from {external_bridge}")
+            _del_external_nics_from_bridge(external_bridge)
     else:
         logging.info(f"configuring external bridge {external_bridge}")
         _add_ip_to_interface(external_bridge, external_bridge_address)

@@ -17,7 +17,6 @@ import json
 from fastapi import FastAPI
 from pydantic import BaseModel
 from snaphelpers import Snap
-from snaphelpers._conf import UnknownConfigKey
 
 from openstack_hypervisor import hooks, model
 
@@ -142,14 +141,6 @@ async def update_logging(config: model.LoggingConfig):
 @app.post("/reset")
 async def reset_config():
     """Reset all configs to default."""
-    try:
-        # Need to remove the nic from the bridge before the config is reset and the
-        # nic name is lost.
-        gateway_nic = snap.config.get("network.gateway-nic")
-        external_bridge = snap.config.get("network.external-bridge")
-        hooks.del_interface_from_bridge(external_bridge, gateway_nic)
-    except UnknownConfigKey:
-        pass
     config = {k: (v() if callable(v) else v) for k, v in hooks.DEFAULT_CONFIG.items()}
     unset_keys = [k for k, v in config.items() if v == hooks.UNSET]
     snap.config.set(config)
