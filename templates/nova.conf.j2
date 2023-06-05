@@ -33,6 +33,10 @@ cpu_mode = {{ compute.cpu_mode }}
 cpu_models = {{ compute.cpu_models }}
 {% endif %}
 
+{% if compute.rbd_secret_uuid %}
+rbd_user = {{ compute.rbd_user }}
+rbd_secret_uuid = {{ compute.rbd_secret_uuid }}
+{% endif %}
 
 [oslo_concurrency]
 # Oslo Concurrency lock path

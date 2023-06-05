@@ -73,6 +73,9 @@ class ComputeConfig(BaseModel):
     virt_type: str = Field(alias="virt-type", default="auto")
     cpu_models: Optional[str] = Field(alias="cpu-models")
     spice_proxy_address: Optional[IPvAnyAddress] = Field(alias="spice-proxy-address")
+    rbd_user: Optional[str] = Field(alias="rbd-user", default="nova")
+    rbd_secret_uuid: Optional[str] = Field(alias="rbd-secret-uuid")
+    rbd_key: Optional[str] = Field(alias="rbd-key")
 
 
 class NetworkConfig(BaseModel):

@@ -328,3 +328,70 @@ class TestHooks:
         hooks._del_external_nics_from_bridge("br-ex")
         expect = [mock.call("br-ex", "eth0"), mock.call("br-ex", "eth1")]
         mock_del_interface_from_bridge.assert_has_calls(expect)
+
+    def test_set_secret(self, mocker):
+        conn_mock = mocker.Mock()
+        secret_mock = mocker.Mock()
+        conn_mock.secretDefineXML.return_value = secret_mock
+        hooks._set_secret(conn_mock, "uuid1", "c2VjcmV0Cg==")
+        conn_mock.secretDefineXML.assert_called_once()
+        secret_mock.setValue.assert_called_once_with(b"secret\n")
+
+    def test_ensure_secret_new_secret(self, mocker):
+        conn_mock = mocker.Mock()
+        mock_libvirt = mocker.Mock()
+        mock_get_libvirt = mocker.patch.object(hooks, "_get_libvirt")
+        mock_get_libvirt.return_value = mock_libvirt
+        mock_libvirt.open.return_value = conn_mock
+        mock_set_secret = mocker.patch.object(hooks, "_set_secret")
+        conn_mock.listSecrets.return_value = []
+        hooks._ensure_secret("uuid1", "secret")
+        mock_set_secret.assert_called_once_with(conn_mock, "uuid1", "secret")
+
+    def test_ensure_secret_secret_exists(self, mocker):
+        conn_mock = mocker.Mock()
+        mock_libvirt = mocker.Mock()
+        secret_mock = mocker.Mock()
+        secret_mock.value.return_value = b"c2VjcmV0"
+        mock_get_libvirt = mocker.patch.object(hooks, "_get_libvirt")
+        mock_get_libvirt.return_value = mock_libvirt
+        mock_libvirt.open.return_value = conn_mock
+        mock_set_secret = mocker.patch.object(hooks, "_set_secret")
+        conn_mock.listSecrets.return_value = ["uuid1"]
+        conn_mock.secretLookupByUUIDString.return_value = secret_mock
+        hooks._ensure_secret("uuid1", "secret")
+        assert not mock_set_secret.called
+
+    def test_ensure_secret_secret_wrong_value(self, mocker):
+        conn_mock = mocker.Mock()
+        mock_libvirt = mocker.Mock()
+        secret_mock = mocker.Mock()
+        secret_mock.value.return_value = b"wrong"
+        mock_get_libvirt = mocker.patch.object(hooks, "_get_libvirt")
+        mock_get_libvirt.return_value = mock_libvirt
+        mock_libvirt.open.return_value = conn_mock
+        mock_set_secret = mocker.patch.object(hooks, "_set_secret")
+        conn_mock.listSecrets.return_value = ["uuid1"]
+        conn_mock.secretLookupByUUIDString.return_value = secret_mock
+        hooks._ensure_secret("uuid1", "secret")
+        mock_set_secret.assert_called_once_with(conn_mock, "uuid1", "secret")
+
+    def test_ensure_secret_secret_missing_value(self, mocker):
+        class FakeError(Exception):
+            def get_error_code(self):
+                return 42
+
+        conn_mock = mocker.Mock()
+        mock_libvirt = mocker.Mock()
+        mock_libvirt.libvirtError = FakeError
+        mock_libvirt.VIR_ERR_NO_SECRET = 42
+        secret_mock = mocker.Mock()
+        secret_mock.value.side_effect = FakeError()
+        mock_get_libvirt = mocker.patch.object(hooks, "_get_libvirt")
+        mock_get_libvirt.return_value = mock_libvirt
+        mock_libvirt.open.return_value = conn_mock
+        mock_set_secret = mocker.patch.object(hooks, "_set_secret")
+        conn_mock.listSecrets.return_value = ["uuid1"]
+        conn_mock.secretLookupByUUIDString.return_value = secret_mock
+        hooks._ensure_secret("uuid1", "secret")
+        mock_set_secret.assert_called_once_with(conn_mock, "uuid1", "secret")

@@ -92,6 +92,16 @@ DATA_DIRS = [
     Path("lib/neutron"),
     Path("run/hypervisor-config"),
 ]
+SECRET_XML = string.Template(
+    """
+<secret ephemeral='no' private='no'>
+   <uuid>$uuid</uuid>
+   <usage type='ceph'>
+     <name>client.cinder-ceph secret</name>
+   </usage>
+</secret>
+"""
+)
 
 # As defined in the snap/snapcraft.yaml
 MONITORING_SERVICES = [
@@ -230,6 +240,9 @@ DEFAULT_CONFIG = {
     "compute.virt-type": "auto",
     "compute.cpu-models": UNSET,
     "compute.spice-proxy-address": _get_local_ip_by_default_route,  # noqa: F821
+    "compute.rbd_user": "nova",
+    "compute.rbd_secret_uuid": UNSET,
+    "compute.rbd_key": UNSET,
     # Neutron
     "network.physnet-name": "physnet1",
     "network.external-bridge": "br-ex",
@@ -925,6 +938,72 @@ def _is_hw_virt_supported() -> bool:
         return False
 
 
+def _set_secret(conn, secret_uuid: str, secret_value: str) -> None:
+    """Set the ceph access secret in libvirt."""
+    logging.info(f"Setting secret {secret_uuid}")
+    new_secret = conn.secretDefineXML(SECRET_XML.substitute(uuid=secret_uuid))
+    # nova assumes the secret is raw and always encodes it *1, so decode it
+    # before storing it.
+    # *1 https://opendev.org/openstack/nova/src/branch/stable/2023.1/nova/
+    #           virt/libvirt/imagebackend.py#L1110
+    new_secret.setValue(base64.b64decode(secret_value))
+
+
+def _get_libvirt():
+    # Lazy import libvirt otherwise snap will not build
+    import libvirt
+
+    return libvirt
+
+
+def _ensure_secret(secret_uuid: str, secret_value: str) -> None:
+    """Ensure libvirt has the ceph access secret with the correct value."""
+    libvirt = _get_libvirt()
+    conn = libvirt.open("qemu:///system")
+    # Check if secret exists
+    if secret_uuid in conn.listSecrets():
+        logging.info(f"Found secret {secret_uuid}")
+        # check secret matches
+        secretobj = conn.secretLookupByUUIDString(secret_uuid)
+        try:
+            secret = secretobj.value()
+        except libvirt.libvirtError as e:
+            if e.get_error_code() == libvirt.VIR_ERR_NO_SECRET:
+                logging.info(f"Secret {secret_uuid} has no value.")
+                secret = None
+            else:
+                raise
+        # Secret is stored raw so encode it before comparison.
+        if secret == base64.b64encode(secret_value.encode()):
+            logging.info(f"Secret {secret_uuid} has desired value.")
+        else:
+            logging.info(f"Secret {secret_uuid} has wrong value, replacing.")
+            secretobj.undefine()
+            _set_secret(conn, secret_uuid, secret_value)
+    else:
+        logging.info(f"Secret {secret_uuid} not found, creating.")
+        _set_secret(conn, secret_uuid, secret_value)
+
+
+def _configure_ceph(snap) -> None:
+    """Configure ceph client.
+
+    :param snap: the snap reference
+    :type snap: Snap
+    :return: None
+    """
+    logging.info("Configuring ceph access")
+    context = (
+        snap.config.get_options(
+            "compute",
+        )
+        .as_dict()
+        .get("compute")
+    )
+    if all(k in context for k in ("rbd-key", "rbd-secret-uuid")):
+        _ensure_secret(context["rbd-secret-uuid"], context["rbd-key"])
+
+
 def _configure_kvm(snap: Snap) -> None:
     """Configure KVM hardware virtualization.
 
@@ -1079,3 +1158,4 @@ def configure(snap: Snap) -> None:
     _configure_ovn_tls(snap)
     _configure_kvm(snap)
     _configure_monitoring_services(snap)
+    _configure_ceph(snap)
