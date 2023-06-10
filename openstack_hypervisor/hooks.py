@@ -147,12 +147,15 @@ def _get_local_ip_by_default_route() -> str:
 
 DEFAULT_CONFIG = {
     # Keystone
+    "identity.admin-role": "Admin",
     "identity.auth-url": "http://localhost:5000/v3",
     "identity.username": UNSET,
     "identity.password": UNSET,
     # keystone-k8s defaults
+    "identity.user-domain-id": UNSET,
     "identity.user-domain-name": "service_domain",
     "identity.project-name": "services",
+    "identity.project-domain-id": UNSET,
     "identity.project-domain-name": "service_domain",
     "identity.region-name": "RegionOne",
     # Messaging

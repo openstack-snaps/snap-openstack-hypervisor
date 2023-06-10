@@ -27,12 +27,17 @@ class RabbitMQUrl(AnyUrl):
 class IdentityServiceConfig(BaseModel):
     """Data Model for Keystone Identity settings for the hypervisor services."""
 
+    admin_role: Optional[str] = Field(alias="admin-role", default="Admin")
     auth_url: Optional[AnyUrl] = Field(alias="auth-url", default=None)
     username: Optional[str]
     password: Optional[str]
     user_domain_name: Optional[str] = Field(
         alias="user-domain-name",
         default="service_domain",
+    )
+    user_domain_id: Optional[str] = Field(
+        alias="user-domain-id",
+        default=None,
     )
     project_name: Optional[str] = Field(
         alias="project-name",
@@ -41,6 +46,10 @@ class IdentityServiceConfig(BaseModel):
     project_domain_name: Optional[str] = Field(
         alias="project-domain-name",
         default="service_domain",
+    )
+    project_domain_id: Optional[str] = Field(
+        alias="project-domain-id",
+        default=None,
     )
     region_name: Optional[str] = Field(
         alias="region-name",

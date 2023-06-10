@@ -71,6 +71,18 @@ user_domain_name = {{ identity.user_domain_name }}
 project_name = {{ identity.project_name }}
 username = {{ identity.username }}
 password = {{ identity.password }}
+service_token_roles = {{ identity.admin_role }}
+service_token_roles_required = True
+
+[service_user]
+send_service_user_token = true
+auth_type = password
+auth_url = {{ identity.auth_url }}
+project_domain_id = {{ identity.project_domain_id }}
+user_domain_id = {{ identity.user_domain_id }}
+project_name = {{ identity.project_name }}
+username = {{ identity.username }}
+password = {{ identity.password }}
 
 [paste_deploy]
 flavor = keystone
