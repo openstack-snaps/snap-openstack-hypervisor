@@ -391,8 +391,6 @@ def _add_iptable_postrouting_rule(cidr: str, comment: str) -> None:
             "POSTROUTING",
             "-s",
             cidr,
-            "-d",
-            cidr,
             "-j",
             "MASQUERADE",
             "-m",
