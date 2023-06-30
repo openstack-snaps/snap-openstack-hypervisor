@@ -20,6 +20,7 @@ import ipaddress
 import json
 import logging
 import os
+import re
 import secrets
 import socket
 import stat
@@ -378,30 +379,47 @@ def _delete_ips_from_interface(interface: str) -> None:
 def _add_iptable_postrouting_rule(cidr: str, comment: str) -> None:
     """Add postrouting iptable rule.
 
-    Check for any preexisting postrouting iptable rules
-    added by openstack-hypervisor and delete them.
-    Add new postiprouting iptable rule to allow traffic
+    Add new postiprouting iptable rule, if it does not exist, to allow traffic
     for cidr network.
     """
-    logging.debug(f"Adding postrouting iptable rule for {cidr}")
-    subprocess.check_call(
-        [
-            "iptables-legacy",
-            "-w",
-            "-t",
-            "nat",
-            "-A",
-            "POSTROUTING",
-            "-s",
-            cidr,
-            "-j",
-            "MASQUERADE",
-            "-m",
-            "comment",
-            "--comment",
-            comment,
-        ]
-    )
+    executable = "iptables-legacy"
+    rule_def = [
+        "POSTROUTING",
+        "-w",
+        "-t",
+        "nat",
+        "-s",
+        cidr,
+        "-j",
+        "MASQUERADE",
+        "-m",
+        "comment",
+        "--comment",
+        comment,
+    ]
+    found = False
+    try:
+        cmd = [executable, "--check"]
+        cmd.extend(rule_def)
+        logging.debug(cmd)
+        subprocess.run(cmd, capture_output=True, check=True)
+    except subprocess.CalledProcessError as e:
+        # --check has an RC of 1 if the rule does not exist
+        if e.returncode == 1 and re.search(r"No.*match by that name", e.stderr.decode()):
+            logging.debug(f"Postrouting iptable rule for {cidr} missing")
+            found = False
+        else:
+            logging.warning(f"Failed to lookup postrouting iptable rule for {cidr}")
+    else:
+        # If not exception was raised then the rule exists.
+        logging.debug(f"Found existing postrouting rule for {cidr}")
+        found = True
+    if not found:
+        logging.debug(f"Adding postrouting iptable rule for {cidr}")
+        cmd = [executable, "--append"]
+        cmd.extend(rule_def)
+        logging.debug(cmd)
+        subprocess.check_call(cmd)
 
 
 def _delete_iptable_postrouting_rule(comment: str) -> None:
