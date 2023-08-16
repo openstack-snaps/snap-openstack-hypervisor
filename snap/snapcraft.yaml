@@ -261,6 +261,17 @@ apps:
         listen-stream: $SNAP_DATA/run/hypervisor-config/unix.socket
         socket-mode: 0666
 
+  # Exporters
+  libvirt-exporter:
+    daemon: simple
+    install-mode: disable
+    restart-condition: on-abnormal
+    command: 'bin/libvirt-exporter'
+    plugs:
+      - libvirt
+      - network-bind
+
+
 parts:
   kvm-support:
     plugin: nil
@@ -585,6 +596,26 @@ parts:
     override-build: |
       craftctl default
       snap-helpers write-hooks
+
+  libvirt-exporter:
+    plugin: go
+    source-tag: 2.3.3
+    source-type: git
+    source: https://github.com/Tinkoff/libvirt-exporter
+    build-snaps:
+      - go
+    after:
+      - libvirt
+    build-packages:
+      - pkg-config
+      - libvirt-dev
+    stage-packages:
+      - libdb5.3
+    override-prime: |
+      craftctl default
+      # Drop the driver for Xen introduced by libvirt-dev, it will cause
+      # libvirt failed to start.
+      rm -rf $CRAFT_PRIME/usr/lib/libvirt/connection-driver/libvirt_driver_libxl.so
 
 slots:
   hypervisor-config:
