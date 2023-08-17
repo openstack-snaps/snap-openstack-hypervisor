@@ -1,0 +1,18 @@
+#!/bin/sh
+
+DEFAULT_LISTEN_ADDRESS=":9475"
+
+listen_address()
+{
+  listen_address="$(snapctl get web.listen-address)"
+  if [ -z "$listen_address" ]; then
+    listen_address="$DEFAULT_LISTEN_ADDRESS"
+  fi
+  echo "$listen_address"
+}
+
+set_listen_address()
+{
+  snapctl set web.listen-address="$1"
+}
+

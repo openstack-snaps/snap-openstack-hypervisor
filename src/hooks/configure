@@ -1,0 +1,16 @@
+#!/bin/sh -e
+
+# sourced configuration scripts related to config options for the http service available
+# for Prometheus to collect metrics
+. "$SNAP/utilities/setup"
+
+handle_config()
+{
+        listen_address="$(listen_address)"
+        set_listen_address "$listen_address"
+        # Restart prometheus-ovn-exporter to apply new config.
+        snapctl restart prometheus-ovs-exporter
+}
+
+handle_config
+
