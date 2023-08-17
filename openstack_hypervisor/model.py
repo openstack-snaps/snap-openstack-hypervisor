@@ -103,3 +103,10 @@ class LoggingConfig(BaseModel):
     """Data model for the logging configuration for the hypervisor."""
 
     debug: bool = Field(default=False)
+
+
+class MonitoringConfig(BaseModel):
+    """Data model for the monitoring configuration settings."""
+
+    enable: bool = Field(default=False)
+    ovs_exporter_port: int = Field(alias="ovs-exporter-port", default=9475)

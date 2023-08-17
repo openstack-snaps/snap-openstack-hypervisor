@@ -31,6 +31,7 @@ MAPPING = {
     "network": model.NetworkConfig,
     "node": model.NodeConfig,
     "logging": model.LoggingConfig,
+    "monitoring": model.MonitoringConfig,
 }
 
 
@@ -136,6 +137,11 @@ async def update_node(config: model.NodeConfig):
 async def update_logging(config: model.LoggingConfig):
     """Updates logging section settings."""
     return _update_settings("logging", config)
+
+@app.patch("/settings/monitoring")
+async def update_monitoring(config: model.LoggingConfig):
+    """Updates monitoring section settings."""
+    return _update_settings("monitoring", config)
 
 
 @app.post("/reset")

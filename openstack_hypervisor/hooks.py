@@ -179,6 +179,9 @@ DEFAULT_CONFIG = {
     "network.enable-gateway": False,
     "network.ip-address": _get_local_ip_by_default_route,  # noqa: F821
     "network.external-nic": UNSET,
+    # Monitoring
+    "monitoring.enable": False,
+    "monitoring.ovs-exporter-port": 9475,
     # General
     "logging.debug": False,
     "node.fqdn": socket.getfqdn,
@@ -200,6 +203,8 @@ REQUIRED_CONFIG = {
     ],
     "neutron-ovn-metadata-agent": ["credentials", "network", "node", "network.ovn_key"],
 }
+
+MONITORING_SERVICES = ["ovs-exporter"]
 
 
 def install(snap: Snap) -> None:
@@ -768,6 +773,18 @@ def _configure_ovn_tls(snap: Snap) -> None:
         ]
     )
 
+def _enable_monitoring(snap: Snap):
+    """Enable/Disable monitoring services."""
+    enable = snap.config.get("monitoring.enable")
+    services = snap.services.list()
+    for service in MONITORING_SERVICES:
+        if enable:
+            services[service].restart()
+            logging.info(f"Enable service: {service}")
+        else:
+            services[service].stop(disable=True)
+            logging.info(f"Disable service: {service}")
+
 
 def _is_kvm_api_available() -> bool:
     """Determine whether KVM is supportable."""
@@ -964,3 +981,4 @@ def configure(snap: Snap) -> None:
     _configure_ovn_external_networking(snap)
     _configure_ovn_tls(snap)
     _configure_kvm(snap)
+    _enable_monitoring(snap)
