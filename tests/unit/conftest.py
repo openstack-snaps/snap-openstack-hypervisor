@@ -136,3 +136,37 @@ def vms():
         "vm3": mock_vm("vm3", os_xml, False),
     }
     yield vms
+
+
+@pytest.fixture()
+def ifaddresses():
+    ifaddresses = {
+        "eth1": {
+            17: [{"addr": "00:16:3e:07:ba:1e", "broadcast": "ff:ff:ff:ff:ff:ff"}],
+            2: [
+                {
+                    "addr": "10.177.200.93",
+                    "netmask": "255.255.255.0",
+                    "broadcast": "10.177.200.255",
+                }
+            ],
+            10: [
+                {
+                    "addr": "fe80::216:3eff:fe07:ba1e%enp5s0",
+                    "netmask": "ffff:ffff:ffff:ffff::/64",
+                }
+            ],
+        },
+        "bond1": {
+            17: [{"addr": "00:16:3e:07:ba:1e", "broadcast": "ff:ff:ff:ff:ff:ff"}],
+            10: [
+                {
+                    "addr": "fe80::216:3eff:fe07:ba1e%bond1",
+                    "netmask": "ffff:ffff:ffff:ffff::/64",
+                }
+            ],
+        },
+    }
+    with patch("openstack_hypervisor.hooks.ifaddresses") as p:
+        p.side_effect = lambda nic: ifaddresses.get(nic)
+        yield p
