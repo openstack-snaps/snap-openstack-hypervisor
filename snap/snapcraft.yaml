@@ -6,7 +6,7 @@ description: |
   The OpenStack Hypervisor snap provides the requires components
   to operate a cloud hypervisor as part of an OpenStack deployment.
 grade: stable
-confinement: devmode
+confinement: strict
 environment:
   LC_ALL: C
   PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$SNAP/usr/local/bin:$SNAP/usr/local/sbin:$PATH
@@ -252,7 +252,7 @@ apps:
         socket-mode: 0666
 
   ovs-exporter:
-    command: 'bin/ovs-exporter.wrapper'
+    command: 'bin/ovs-exporter-service'
     plugs:
       - network-bind
       - openvswitch
@@ -264,6 +264,7 @@ apps:
       - etc-openvswitch
       - run-openvswitch
     daemon: simple
+    install-mode: disable
 
 parts:
   kvm-support:
@@ -304,19 +305,10 @@ parts:
       -X ${PROJECT}/${PKG_DIR}.gitCommit=$GIT_COMMIT \
       -X ${PROJECT}/${PKG_DIR}.buildUser=$BUILD_USER \
       -X ${PROJECT}/${PKG_DIR}.buildDate=$BUILD_DATE" \
-      -gcflags="all=-trimpath=../src" \
-      -asmflags="all=-trimpath ../src" \
       ./cmd/ovs_exporter/*.go
     override-prime: |
       snapcraftctl prime
       install -D $SNAPCRAFT_PART_SRC/../build/bin/ovs-exporter bin/ovs-exporter
-
-  scripts:
-    plugin: dump
-    source: src
-    organize:
-      ovs-exporter-wrapper: bin/ovs-exporter.wrapper
-      hooks/configure: meta/hooks/configure
 
   qemu:
     source: https://git.launchpad.net/ubuntu/+source/qemu

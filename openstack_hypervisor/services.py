@@ -157,3 +157,57 @@ class OVSDBServerService:
 
 
 ovsdb_server = partial(entry_point, OVSDBServerService)
+
+
+class OVSExporterService:
+    """A python service object used to run the ovs-exporter daemon."""
+
+    def run(self, snap: Snap) -> int:
+        """Runs the ovs-exporter service.
+
+        Invoked when config monitoring is enable.
+
+        :param snap: the snap context
+        :type snap: Snap
+        :return: exit code of the process
+        :rtype: int
+        """
+        setup_logging(snap.paths.common / f"ovs-exporter.log")
+        executable = snap.paths.snap / "bin" / "ovs-exporter"
+        listen_address = ":9475"
+        args = [
+            f"-web.listen-address={listen_address}",
+            "-database.vswitch.file.data.path",
+            f"{snap.paths.common}/etc/openvswitch/conf.db",
+            "-database.vswitch.file.log.path",
+            f"{snap.paths.common}/log/openvswitch/ovsdb-server.log",
+            "-database.vswitch.file.pid.path",
+            f"{snap.paths.common}/run/openvswitch/ovsdb-server.pid",
+            "-database.vswitch.file.system.id.path",
+            f"{snap.paths.common}/etc/openvswitch/system-id.conf",
+            "-database.vswitch.name",
+            "Open_vSwitch",
+            "-database.vswitch.socket.remote",
+            "unix:" + f"{snap.paths.common}/run/openvswitch/db.sock",
+            "-service.ovncontroller.file.log.path",
+            f"{snap.paths.common}/log/ovn/ovn-controller.log",
+            "-service.ovncontroller.file.pid.path",
+            f"{snap.paths.common}/run/ovn/ovn-controller.pid",
+            "-service.vswitchd.file.log.path",
+            f"{snap.paths.common}/log/openvswitch/ovs-vswitchd.log",
+            "-service.vswitchd.file.pid.path",
+            f"{snap.paths.common}/run/openvswitch/ovs-vswitchd.pid",
+            "-system.run.dir",
+            f"{snap.paths.common}/run/openvswitch",
+        ]
+        cmd = [str(executable)]
+        cmd.extend(args)
+
+        logging.info(cmd)
+        completed_process = subprocess.run(cmd)
+        logging.info(completed_process.stdout)
+
+        logging.info(f"Exiting with code {completed_process.returncode}")
+        return completed_process.returncode
+
+ovs_exporter = partial(entry_point, OVSExporterService)
