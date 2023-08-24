@@ -266,7 +266,7 @@ apps:
     daemon: simple
     install-mode: disable
     restart-condition: on-abnormal
-    command: 'bin/libvirt-exporter'
+    command: 'bin/libvirt-exporter --web.listen-address :9177 --web.telemetry-path /metrics --libvirt.uri qemu:///system'
     plugs:
       - libvirt
       - network-bind
