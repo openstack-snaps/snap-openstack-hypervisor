@@ -134,6 +134,7 @@ class TestHooks:
     def test_services(self):
         """Test getting a list of managed services."""
         assert hooks.services() == [
+            "ceilometer-compute-agent",
             "libvirtd",
             "neutron-ovn-metadata-agent",
             "nova-api-metadata",
@@ -162,12 +163,14 @@ class TestHooks:
     def test_services_not_ready(self, snap):
         config = {}
         assert hooks._services_not_ready(config) == [
+            "ceilometer-compute-agent",
             "neutron-ovn-metadata-agent",
             "nova-api-metadata",
             "nova-compute",
         ]
         config["identity"] = {"username": "user", "password": "pass"}
         assert hooks._services_not_ready(config) == [
+            "ceilometer-compute-agent",
             "neutron-ovn-metadata-agent",
             "nova-api-metadata",
             "nova-compute",
@@ -187,6 +190,14 @@ class TestHooks:
         assert hooks._services_not_ready(config) == ["neutron-ovn-metadata-agent"]
         config["credentials"] = {"ovn_metadata_proxy_shared_secret": "secret"}
         assert hooks._services_not_ready(config) == []
+
+    def test_services_not_enabled_by_config(self, snap):
+        config = {}
+        assert hooks._services_not_enabled_by_config(config) == [
+            "ceilometer-compute-agent",
+        ]
+        config["telemetry"] = {"enable": True}
+        assert hooks._services_not_enabled_by_config(config) == []
 
     def test_list_bridge_ifaces(self, check_output):
         check_output.return_value = b"int1\nint2\n"
