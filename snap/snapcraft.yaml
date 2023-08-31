@@ -606,16 +606,9 @@ parts:
       - go
     after:
       - libvirt
-    build-packages:
-      - pkg-config
-      - libvirt-dev
-    stage-packages:
-      - libdb5.3
-    override-prime: |
-      craftctl default
-      # Drop the driver for Xen introduced by libvirt-dev, it will cause
-      # libvirt failed to start.
-      rm -rf $CRAFT_PRIME/usr/lib/libvirt/connection-driver/libvirt_driver_libxl.so
+    build-environment:
+      - CGO_CFLAGS: "-I$CRAFT_STAGE/usr/include"
+      - CGO_LDFLAGS: "-L$CRAFT_STAGE/usr/lib"
 
 slots:
   hypervisor-config:
