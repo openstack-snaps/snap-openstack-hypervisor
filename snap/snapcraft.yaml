@@ -275,9 +275,8 @@ parts:
 
   ovs-exporter:
     plugin: go
-    # go-channel: 1.19/stable
-    source: ./ovs_exporter
-    source-tag: v1.0.5
+    source: https://github.com/jneo8/ovs_exporter.git
+    source-branch: build/jneo8-ovsdb
     build-packages:
       - gcc
       - golang-go
