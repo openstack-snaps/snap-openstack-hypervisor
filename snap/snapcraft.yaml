@@ -251,12 +251,63 @@ apps:
         listen-stream: $SNAP_DATA/run/hypervisor-config/unix.socket
         socket-mode: 0666
 
+  ovs-exporter:
+    command: 'bin/ovs-exporter-service'
+    plugs:
+      - network-bind
+      - openvswitch
+      - log-observe
+      - system-observe
+      - network-observe
+      - netlink-audit
+      - kernel-module-observe
+      - etc-openvswitch
+      - run-openvswitch
+    daemon: simple
+    install-mode: disable
+
 parts:
   kvm-support:
     plugin: nil
     stage-packages:
     - on amd64:
       - msr-tools
+
+  ovs-exporter:
+    plugin: go
+    source: https://github.com/jneo8/ovs_exporter.git
+    source-branch: build/jneo8-ovsdb
+    build-packages:
+      - gcc
+      - golang-go
+    override-build: |
+      GIT_COMMIT=$(git describe --dirty --always)
+      GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD -- | head -1)
+      BUILD_USER=snapcraft
+      BUILD_DATE=$(date +"%Y-%m-%d")
+      BINARY=ovs-exporter
+      VERBOSE=-v
+      PROJECT=ovs_exporter
+      PKG_DIR=pkg/ovs_exporter
+      mkdir -p bin/
+      rm -rf ./bin/*
+      CGO_ENABLED=0 go build -o ./bin/${BINARY} \
+      -ldflags="-w -s \
+      -X github.com/prometheus/common/version.Version=$SNAPCRAFT_PROJECT_VERSION \
+      -X github.com/prometheus/common/version.Revision=$GIT_COMMIT \
+      -X github.com/prometheus/common/version.Branch=$GIT_BRANCH \
+      -X github.com/prometheus/common/version.BuildUser=$BUILD_USER \
+      -X github.com/prometheus/common/version.BuildDate=$BUILD_DATE \
+      -X ${PROJECT}/${PKG_DIR}.appName=$BINARY \
+      -X ${PROJECT}/${PKG_DIR}.appVersion=$SNAPCRAFT_PROJECT_VERSION \
+      -X ${PROJECT}/${PKG_DIR}.gitBranch=$GIT_BRANCH \
+      -X ${PROJECT}/${PKG_DIR}.gitCommit=$GIT_COMMIT \
+      -X ${PROJECT}/${PKG_DIR}.buildUser=$BUILD_USER \
+      -X ${PROJECT}/${PKG_DIR}.buildDate=$BUILD_DATE" \
+      ./cmd/ovs_exporter/*.go
+    override-prime: |
+      snapcraftctl prime
+      install -D $SNAPCRAFT_PART_SRC/../build/bin/ovs-exporter bin/ovs-exporter
 
   qemu:
     source: https://git.launchpad.net/ubuntu/+source/qemu
@@ -583,12 +634,26 @@ slots:
       write:
         - $SNAP_DATA/run/hypervisor-config
 
+plugs:
+  etc-openvswitch:
+    interface: system-files
+    read:
+    - /var/snap/openstack-hypervisor/common/etc/openvswitch
+  # For Unix sockets read-write permissions are needed even though the
+  # requests over those sockets will be read-only (in order to write a
+  # request we need write permissions).
+  run-openvswitch:
+    interface: system-files
+    write:
+    - /var/snap/openstack-hypervisor/common/run/openvswitch
+
 hooks:
   install:
     plugs: [ network, microstack-support]
   configure:
     plugs:
       - network
+      - network-bind
       - network-control
       - firewall-control
       - microstack-support
