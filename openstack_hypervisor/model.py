@@ -103,3 +103,10 @@ class LoggingConfig(BaseModel):
     """Data model for the logging configuration for the hypervisor."""
 
     debug: bool = Field(default=False)
+
+
+class TelemetryConfig(BaseModel):
+    """Data model for telemetry configuration settings."""
+
+    enable: bool = Field(default=False)
+    publisher_secret: Optional[str] = Field(alias="publisher-secret")
