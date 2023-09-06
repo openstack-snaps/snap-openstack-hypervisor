@@ -108,3 +108,8 @@ region_name = {{ identity.region_name }}
 project_name = {{ identity.project_name }}
 username = {{ identity.username }}
 password = {{ identity.password }}
+
++{% if telemetry.enable -%}
++[oslo_messaging_notifications]
++driver = messagingv2
++{%- endif %}

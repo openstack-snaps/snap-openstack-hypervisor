@@ -233,6 +233,16 @@ apps:
       - firewall-control
       - microstack-support
 
+  ceilometer-compute-agent:
+    command: 'bin/ceilometer-compute-agent-service'
+    after: [libvirtd]
+    daemon: simple
+    plugs:
+      - network
+      - network-bind
+      - firewall-control
+      - microstack-support
+
   hypervisor-config-service:
     command: 'bin/gunicorn openstack_hypervisor.api:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --timeout 120 --bind unix:$SNAP_DATA/run/hypervisor-config/unix.socket'
     restart-condition: on-failure
@@ -540,6 +550,7 @@ parts:
   openstack:
     plugin: nil
     stage-packages:
+      - ceilometer-agent-compute
       - python3-nova
       - python3-neutron
       - python3-os-vif

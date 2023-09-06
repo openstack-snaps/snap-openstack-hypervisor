@@ -35,6 +35,7 @@ class OpenStackService:
 
     conf_files = []
     conf_dirs = []
+    extra_args = []
 
     executable = None
 
@@ -70,6 +71,7 @@ class OpenStackService:
 
         cmd = [str(executable)]
         cmd.extend(args)
+        cmd.extend(self.extra_args)
         completed_process = subprocess.run(cmd)
 
         logging.info(f"Exiting with code {completed_process.returncode}")
@@ -123,6 +125,21 @@ class NeutronOVNMetadataAgentService(OpenStackService):
 
 
 neutron_ovn_metadata_agent = partial(entry_point, NeutronOVNMetadataAgentService)
+
+
+class CeilometerComputeAgentService(OpenStackService):
+    """A python service object used to run the ceilometer-agent-compute daemon."""
+
+    conf_files = [
+        Path("etc/ceilometer/ceilometer.conf"),
+    ]
+    conf_dirs = []
+    extra_args = ["--polling-namespaces", "compute"]
+
+    executable = Path("usr/bin/ceilometer-polling")
+
+
+ceilometer_compute_agent = partial(entry_point, CeilometerComputeAgentService)
 
 
 class OVSDBServerService:

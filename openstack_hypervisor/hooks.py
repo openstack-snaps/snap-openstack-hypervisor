@@ -70,6 +70,7 @@ COMMON_DIRS = [
     Path("etc/neutron/neutron.conf.d"),
     Path("etc/ssl/certs"),
     Path("etc/ssl/private"),
+    Path("etc/ceilometer"),
     # log
     Path("log/libvirt/qemu"),
     Path("log/ovn"),
@@ -241,6 +242,9 @@ DEFAULT_CONFIG = {
     "node.fqdn": socket.getfqdn,
     "node.ip-address": _get_local_ip_by_default_route,  # noqa: F821
     # TLS
+    # Telemetry
+    "telemetry.enable": False,
+    "telemetry.publisher-secret": UNSET,
 }
 
 
@@ -256,6 +260,12 @@ REQUIRED_CONFIG = {
         "network",
     ],
     "neutron-ovn-metadata-agent": ["credentials", "network", "node", "network.ovn_key"],
+    "ceilometer-compute-agent": [
+        "identity.password",
+        "identity.username",
+        "identity",
+        "rabbitmq.url",
+    ],
 }
 
 
@@ -334,6 +344,14 @@ TEMPLATES = {
     Path("etc/libvirt/virtlogd.conf"): {"template": "virtlogd.conf.j2", "services": ["virtlogd"]},
     Path("etc/openvswitch/system-id.conf"): {
         "template": "system-id.conf.j2",
+    },
+    Path("etc/ceilometer/ceilometer.conf"): {
+        "template": "ceilometer.conf.j2",
+        "services": ["ceilometer-compute-agent"],
+    },
+    Path("etc/ceilometer/polling.yaml"): {
+        "template": "polling.yaml.j2",
+        "services": ["ceilometer-compute-agent"],
     },
 }
 
@@ -958,6 +976,15 @@ def _services_not_ready(context: dict) -> List[str]:
     return sorted(list(set(not_ready)))
 
 
+def _services_not_enabled_by_config(context: dict) -> List[str]:
+    """Check if services are enabled by configuration."""
+    not_enabled = []
+    if not context.get("telemetry", {}).get("enable"):
+        not_enabled.append("ceilometer-compute-agent")
+
+    return not_enabled
+
+
 def configure(snap: Snap) -> None:
     """Runs the `configure` hook for the snap.
 
@@ -984,6 +1011,7 @@ def configure(snap: Snap) -> None:
         "node",
         "rabbitmq",
         "credentials",
+        "telemetry",
     ).as_dict()
 
     # Add some general snap path information
@@ -997,6 +1025,7 @@ def configure(snap: Snap) -> None:
     context = _context_compat(context)
     logging.info(context)
     exclude_services = _services_not_ready(context)
+    exclude_services.extend(_services_not_enabled_by_config(context))
     logging.warning(f"{exclude_services} are missing required config, stopping")
     services = snap.services.list()
     for service in exclude_services:
