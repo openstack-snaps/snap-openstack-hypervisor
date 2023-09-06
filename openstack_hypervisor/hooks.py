@@ -93,6 +93,11 @@ DATA_DIRS = [
     Path("run/hypervisor-config"),
 ]
 
+# As defined in the snap/snapcraft.yaml
+MONITORING_SERVICES = [
+    "libvirt-exporter",
+]
+
 
 def _generate_secret(length: int = DEFAULT_SECRET_LENGTH) -> str:
     """Generate a secure secret.
@@ -237,6 +242,8 @@ DEFAULT_CONFIG = {
     "network.enable-gateway": False,
     "network.ip-address": _get_local_ip_by_default_route,  # noqa: F821
     "network.external-nic": UNSET,
+    # Monitoring
+    "monitoring.enable": False,
     # General
     "logging.debug": False,
     "node.fqdn": socket.getfqdn,
@@ -917,7 +924,7 @@ def _is_hw_virt_supported() -> bool:
         return False
 
 
-def _configure_kvm(snap) -> None:
+def _configure_kvm(snap: Snap) -> None:
     """Configure KVM hardware virtualization.
 
     :param snap: the snap reference
@@ -935,6 +942,25 @@ def _configure_kvm(snap) -> None:
             "Hardware virtualization is not supported - software" " emulation will be used."
         )
         snap.config.set({"compute.virt-type": "qemu"})
+
+
+def _configure_monitoring_services(snap: Snap) -> None:
+    """Configure all the monitoring services.
+
+    :param snap: the snap reference
+    :type snap: Snap
+    :return: None
+    """
+    services = snap.services.list()
+    enable_monitoring = snap.config.get("monitoring.enable")
+    if enable_monitoring:
+        logging.info("Enabling all exporter services.")
+        for service in MONITORING_SERVICES:
+            services[service].start(enable=True)
+    else:
+        logging.info("Disabling all exporter services.")
+        for service in MONITORING_SERVICES:
+            services[service].stop(disable=True)
 
 
 def services() -> List[str]:
@@ -1012,6 +1038,7 @@ def configure(snap: Snap) -> None:
         "rabbitmq",
         "credentials",
         "telemetry",
+        "monitoring",
     ).as_dict()
 
     # Add some general snap path information
@@ -1050,3 +1077,4 @@ def configure(snap: Snap) -> None:
     _configure_ovn_external_networking(snap)
     _configure_ovn_tls(snap)
     _configure_kvm(snap)
+    _configure_monitoring_services(snap)

@@ -110,3 +110,9 @@ class TelemetryConfig(BaseModel):
 
     enable: bool = Field(default=False)
     publisher_secret: Optional[str] = Field(alias="publisher-secret")
+
+
+class MonitoringConfig(BaseModel):
+    """Data model for the monitoring configuration settings."""
+
+    enable: bool = Field(default=False)

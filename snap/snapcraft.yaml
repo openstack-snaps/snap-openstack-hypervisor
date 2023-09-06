@@ -261,6 +261,17 @@ apps:
         listen-stream: $SNAP_DATA/run/hypervisor-config/unix.socket
         socket-mode: 0666
 
+  # Exporters
+  libvirt-exporter:
+    daemon: simple
+    install-mode: disable
+    restart-condition: on-abnormal
+    command: 'bin/libvirt-exporter --web.listen-address :9177 --web.telemetry-path /metrics --libvirt.uri qemu:///system'
+    plugs:
+      - libvirt
+      - network-bind
+
+
 parts:
   kvm-support:
     plugin: nil
@@ -585,6 +596,19 @@ parts:
     override-build: |
       craftctl default
       snap-helpers write-hooks
+
+  libvirt-exporter:
+    plugin: go
+    source-tag: 2.3.3
+    source-type: git
+    source: https://github.com/Tinkoff/libvirt-exporter
+    build-snaps:
+      - go
+    after:
+      - libvirt
+    build-environment:
+      - CGO_CFLAGS: "-I$CRAFT_STAGE/usr/include"
+      - CGO_LDFLAGS: "-L$CRAFT_STAGE/usr/lib"
 
 slots:
   hypervisor-config:
