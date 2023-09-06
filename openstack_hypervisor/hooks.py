@@ -96,6 +96,7 @@ DATA_DIRS = [
 # As defined in the snap/snapcraft.yaml
 MONITORING_SERVICES = [
     "libvirt-exporter",
+    "ovs-exporter",
 ]
 
 
